@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>云游坊 - 发现你的下一个旅行目的地</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <style>
+        /* 头部横幅 */
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 80px 20px;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .hero p {
+            font-size: 18px;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 16px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        .search-box button {
+            padding: 16px 32px;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .search-box button:hover {
+            transform: scale(1.05);
+        }
+
+        /* 分类导航 */
+        .categories {
+            background: white;
+            padding: 40px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .category-tabs {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+
+        .category-tab {
+            padding: 12px 24px;
+            background: #f5f7fa;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 15px;
+            color: #666;
+        }
+
+        .category-tab:hover,
+        .category-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* 景点卡片网格 */
+        .attractions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 40px;
+        }
+
+        .attraction-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .attraction-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+
+        .attraction-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .attraction-info {
+            padding: 20px;
+        }
+
+        .attraction-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .attraction-location {
+            font-size: 14px;
+            color: #999;
+            margin-bottom: 12px;
+        }
+
+        .attraction-summary {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 12px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .attraction-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .attraction-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 12px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .attraction-price {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ff6b6b;
+        }
+
+        .attraction-popularity {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 14px;
+            color: #667eea;
+        }
+
+        .popularity-fire {
+            font-size: 16px;
+        }
+
+        /* 热门推荐 */
+        .section-title {
+            font-size: 32px;
+            font-weight: bold;
+            text-align: center;
+            margin: 60px 0 40px;
+            color: #333;
+        }
+
+        /* 聊天按钮 */
+        .chat-fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .chat-fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 32px;
+            }
+
+            .search-box {
+                flex-direction: column;
+            }
+
+            .attractions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="home.html" class="logo">云游坊</a>
+            <ul class="nav-menu">
+                <li><a href="home.html" class="active">首页</a></li>
+                <li><a href="plans.html">我的计划</a></li>
+                <li><a href="footprints.html">足迹</a></li>
+                <li><a href="discover.html">发现</a></li>
+            </ul>
+            <div class="user-menu">
+                <div class="avatar" onclick="window.location.href='profile.html'">游</div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 头部横幅 -->
+    <section class="hero">
+        <h1>发现你的下一个旅行目的地</h1>
+        <p>智能规划，轻松出游</p>
+        <div class="search-box">
+            <input type="text" placeholder="搜索景点、城市或目的地..." id="searchInput">
+            <button onclick="searchAttractions()">搜索</button>
+        </div>
+    </section>
+
+    <!-- 分类导航 -->
+    <section class="categories">
+        <div class="container">
+            <div class="category-tabs">
+                <div class="category-tab active" data-category="all" onclick="filterByCategory('all')">全部</div>
+                <div class="category-tab" data-category="历史人文" onclick="filterByCategory('历史人文')">历史人文</div>
+                <div class="category-tab" data-category="自然景色" onclick="filterByCategory('自然景色')">自然景色</div>
+                <div class="category-tab" data-category="世界遗产" onclick="filterByCategory('世界遗产')">世界遗产</div>
+                <div class="category-tab" data-category="5A景区" onclick="filterByCategory('5A景区')">5A景区</div>
+            </div>
+
+            <!-- 地区选择器 -->
+            <div style="margin-top: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <span style="font-size: 14px; color: #666; font-weight: bold;">📍 按地区筛选：</span>
+                <select id="provinceFilter" onchange="filterByProvince()" style="padding: 8px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; cursor: pointer; min-width: 120px;">
+                    <option value="all">全部省份</option>
+                </select>
+                <select id="cityFilter" onchange="filterByCity()" style="padding: 8px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; cursor: pointer; min-width: 120px;">
+                    <option value="all">全部城市</option>
+                </select>
+                <span id="filterStatus" style="font-size: 13px; color: #999;"></span>
+            </div>
+        </div>
+    </section>
+
+    <!-- 热度排行 -->
+    <section class="container">
+        <h2 class="section-title">🔥 热度排行</h2>
+        <div class="attractions-grid" id="attractionsGrid"></div>
+    </section>
+
+    <!-- 推荐景点 -->
+    <section class="container">
+        <h2 class="section-title">✨ 为你推荐</h2>
+        <div class="attractions-grid" id="recommendGrid"></div>
+    </section>
+
+    <!-- 聊天按钮 -->
+    <div class="chat-fab" onclick="window.location.href='chat.html'" title="智能助手">
+        💬
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script src="../js/mockData.js"></script>
+    <script>
+        let currentCategory = 'all';
+        let currentProvince = 'all';
+        let currentCity = 'all';
+        let allAttractions = [...mockAttractions];
+
+        // 初始化页面
+        function init() {
+            populateProvinceFilter();
+            renderAttractions();
+            renderRecommendations();
+        }
+
+        // 填充省份选择器
+        function populateProvinceFilter() {
+            const provinceFilter = document.getElementById('provinceFilter');
+
+            // 获取所有唯一的省份
+            const provinces = [...new Set(allAttractions.map(a => a.province))].sort();
+
+            // 添加省份选项
+            provinces.forEach(province => {
+                const option = document.createElement('option');
+                option.value = province;
+                option.textContent = province;
+                provinceFilter.appendChild(option);
+            });
+        }
+
+        // 按省份筛选
+        function filterByProvince() {
+            currentProvince = document.getElementById('provinceFilter').value;
+            currentCity = 'all'; // 重置城市选择
+
+            // 更新城市选择器
+            updateCityFilter();
+            renderAttractions();
+        }
+
+        // 更新城市选择器
+        function updateCityFilter() {
+            const cityFilter = document.getElementById('cityFilter');
+            cityFilter.innerHTML = '<option value="all">全部城市</option>';
+
+            if (currentProvince === 'all') {
+                // 如果选择全部省份，显示所有城市
+                const cities = [...new Set(allAttractions.map(a => a.city))].sort();
+                cities.forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city;
+                    option.textContent = city;
+                    cityFilter.appendChild(option);
+                });
+            } else {
+                // 只显示当前省份的城市
+                const cities = [...new Set(
+                    allAttractions
+                        .filter(a => a.province === currentProvince)
+                        .map(a => a.city)
+                )].sort();
+
+                cities.forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city;
+                    option.textContent = city;
+                    cityFilter.appendChild(option);
+                });
+            }
+        }
+
+        // 按城市筛选
+        function filterByCity() {
+            currentCity = document.getElementById('cityFilter').value;
+            renderAttractions();
+        }
+
+        // 渲染景点列表
+        function renderAttractions() {
+            const grid = document.getElementById('attractionsGrid');
+            let attractions = allAttractions;
+
+            // 按分类过滤
+            if (currentCategory !== 'all') {
+                attractions = attractions.filter(a => a.category.includes(currentCategory));
+            }
+
+            // 按省份过滤
+            if (currentProvince !== 'all') {
+                attractions = attractions.filter(a => a.province === currentProvince);
+            }
+
+            // 按城市过滤
+            if (currentCity !== 'all') {
+                attractions = attractions.filter(a => a.city === currentCity);
+            }
+
+            // 按热度排序
+            attractions.sort((a, b) => b.popularity - a.popularity);
+
+            if (attractions.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: #999; font-size: 16px;">😔 暂无符合条件的景点，试试其他筛选条件吧</div>';
+                updateFilterStatus();
+                return;
+            }
+
+            grid.innerHTML = attractions.map(attraction => `
+                <div class="attraction-card" onclick="viewAttraction(${attraction.id})">
+                    <img src="${attraction.image}" alt="${attraction.name}" class="attraction-image"
+                         onerror="this.style.background='linear-gradient(135deg, #667eea 0%, #764ba2 100%)'">
+                    <div class="attraction-info">
+                        <div class="attraction-name">${attraction.name}</div>
+                        <div class="attraction-location">📍 ${attraction.province} · ${attraction.city}</div>
+                        <div class="attraction-summary">${attraction.summary}</div>
+                        <div class="attraction-tags">
+                            ${attraction.category.map(cat => `<span class="tag tag-primary">${cat}</span>`).join('')}
+                        </div>
+                        <div class="attraction-footer">
+                            <div class="attraction-price">¥${attraction.ticketPrice}</div>
+                            <div class="attraction-popularity" title="${attraction.reason}">
+                                <span class="popularity-fire">🔥</span>
+                                <span>${attraction.popularity}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            updateFilterStatus();
+        }
+
+        // 更新筛选状态提示
+        function updateFilterStatus() {
+            const statusEl = document.getElementById('filterStatus');
+            let status = [];
+
+            if (currentCategory !== 'all') {
+                status.push(`分类: ${currentCategory}`);
+            }
+
+            if (currentProvince !== 'all') {
+                status.push(`省份: ${currentProvince}`);
+            }
+
+            if (currentCity !== 'all') {
+                status.push(`城市: ${currentCity}`);
+            }
+
+            if (status.length > 0) {
+                const total = allAttractions.filter(a => {
+                    let match = true;
+                    if (currentCategory !== 'all') match = match && a.category.includes(currentCategory);
+                    if (currentProvince !== 'all') match = match && a.province === currentProvince;
+                    if (currentCity !== 'all') match = match && a.city === currentCity;
+                    return match;
+                }).length;
+
+                statusEl.textContent = `当前筛选: ${status.join(', ')} | 共 ${total} 个景点`;
+                statusEl.style.color = '#667eea';
+                statusEl.style.fontWeight = '500';
+            } else {
+                statusEl.textContent = `共 ${allAttractions.length} 个景点`;
+                statusEl.style.color = '#999';
+                statusEl.style.fontWeight = 'normal';
+            }
+        }
+
+        // 渲染推荐景点（模拟个性化推荐）
+        function renderRecommendations() {
+            const grid = document.getElementById('recommendGrid');
+            const recommendations = [...mockAttractions]
+                .sort(() => Math.random() - 0.5)
+                .slice(0, 4);
+
+            grid.innerHTML = recommendations.map(attraction => `
+                <div class="attraction-card" onclick="viewAttraction(${attraction.id})">
+                    <img src="${attraction.image}" alt="${attraction.name}" class="attraction-image"
+                         onerror="this.style.background='linear-gradient(135deg, #667eea 0%, #764ba2 100%)'">
+                    <div class="attraction-info">
+                        <div class="attraction-name">${attraction.name}</div>
+                        <div class="attraction-location">📍 ${attraction.city}</div>
+                        <div class="attraction-summary">${attraction.summary}</div>
+                        <div class="attraction-tags">
+                            ${attraction.category.map(cat => `<span class="tag tag-primary">${cat}</span>`).join('')}
+                        </div>
+                        <div class="attraction-footer">
+                            <div class="attraction-price">¥${attraction.ticketPrice}</div>
+                            <div class="attraction-popularity">
+                                <span>💡</span>
+                                <span style="font-size: 12px; color: #999;">推荐给你</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 分类过滤
+        function filterByCategory(category) {
+            currentCategory = category;
+
+            // 更新标签样式
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            renderAttractions();
+        }
+
+        // 查看景点详情
+        function viewAttraction(id) {
+            window.location.href = `attraction-detail.html?id=${id}`;
+        }
+
+        // 搜索景点
+        function searchAttractions() {
+            const keyword = document.getElementById('searchInput').value.trim();
+            if (!keyword) {
+                showToast('请输入搜索关键词', 'info');
+                return;
+            }
+
+            // 模拟搜索
+            allAttractions = mockAttractions.filter(a =>
+                a.name.includes(keyword) ||
+                a.city.includes(keyword) ||
+                a.summary.includes(keyword)
+            );
+
+            if (allAttractions.length === 0) {
+                showToast('未找到相关景点', 'info');
+                allAttractions = [...mockAttractions];
+            } else {
+                showToast(`找到 ${allAttractions.length} 个相关景点`, 'success');
+            }
+
+            renderAttractions();
+        }
+
+        // 回车搜索
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchAttractions();
+            }
+        });
+
+        // 页面加载完成后初始化
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的足迹 - 云游坊</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <style>
+        .footprints-container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .page-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .footprints-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .footprint-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .footprint-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+
+        .footprint-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .footprint-content {
+            padding: 20px;
+        }
+
+        .footprint-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .footprint-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .footprint-date {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .footprint-rating {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
+        }
+
+        .star {
+            color: #ffd700;
+            font-size: 16px;
+        }
+
+        .star.empty {
+            color: #e0e0e0;
+        }
+
+        .footprint-review {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .footprint-source {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #f0f0f0;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .source-auto {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            grid-column: 1/-1;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            color: #999;
+            margin-bottom: 12px;
+        }
+
+        .empty-state p {
+            color: #bbb;
+            margin-bottom: 24px;
+        }
+
+        /* 添加足迹模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 24px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .form-actions .btn {
+            flex: 1;
+        }
+
+        .rating-input {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .rating-star {
+            font-size: 24px;
+            cursor: pointer;
+            color: #e0e0e0;
+            transition: all 0.2s;
+        }
+
+        .rating-star:hover,
+        .rating-star.active {
+            color: #ffd700;
+            transform: scale(1.2);
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .footprints-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="home.html" class="logo">云游坊</a>
+            <ul class="nav-menu">
+                <li><a href="home.html">首页</a></li>
+                <li><a href="plans.html">我的计划</a></li>
+                <li><a href="footprints.html" class="active">足迹</a></li>
+                <li><a href="discover.html">发现</a></li>
+            </ul>
+            <div class="user-menu">
+                <div class="avatar" onclick="window.location.href='profile.html'">游</div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="footprints-container">
+        <div class="page-header">
+            <h1 class="page-title">我的足迹</h1>
+            <button class="btn btn-primary" onclick="openAddFootprintModal()">+ 添加足迹</button>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-value" id="totalCount">0</div>
+                <div class="stat-label">去过的景点</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="provincesCount">0</div>
+                <div class="stat-label">走过的省份</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="citiesCount">0</div>
+                <div class="stat-label">到过的城市</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="photosCount">0</div>
+                <div class="stat-label">上传的照片</div>
+            </div>
+        </div>
+
+        <!-- 足迹列表 -->
+        <div class="footprints-grid" id="footprintsGrid"></div>
+    </div>
+
+    <!-- 添加足迹模态框 -->
+    <div class="modal" id="addFootprintModal">
+        <div class="modal-content">
+            <div class="modal-header">添加足迹</div>
+            <form onsubmit="addFootprint(event)">
+                <div class="form-group">
+                    <label class="form-label">选择景点</label>
+                    <select class="form-select" id="attractionSelect" required>
+                        <option value="">请选择景点</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">游览日期</label>
+                    <input type="date" class="form-input" id="visitDate" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">评分</label>
+                    <div class="rating-input" id="ratingInput">
+                        <span class="rating-star" data-rating="1" onclick="setRating(1)">★</span>
+                        <span class="rating-star" data-rating="2" onclick="setRating(2)">★</span>
+                        <span class="rating-star" data-rating="3" onclick="setRating(3)">★</span>
+                        <span class="rating-star" data-rating="4" onclick="setRating(4)">★</span>
+                        <span class="rating-star" data-rating="5" onclick="setRating(5)">★</span>
+                    </div>
+                    <input type="hidden" id="ratingValue" value="5">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">游记（可选）</label>
+                    <textarea class="form-textarea" id="reviewText" placeholder="分享一下你的旅行体验..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeAddFootprintModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script src="../js/mockData.js"></script>
+    <script>
+        let footprints = [...mockFootprints];
+        let selectedRating = 5;
+
+        // 初始化
+        function init() {
+            renderFootprints();
+            updateStats();
+            populateAttractionSelect();
+            setRating(5); // 默认5星
+        }
+
+        // 渲染足迹列表
+        function renderFootprints() {
+            const grid = document.getElementById('footprintsGrid');
+
+            if (footprints.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 64px; margin-bottom: 20px;">📍</div>
+                        <h3>还没有足迹记录</h3>
+                        <p>开始记录你的旅行足迹吧！</p>
+                        <button class="btn btn-primary" onclick="openAddFootprintModal()">+ 添加足迹</button>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = footprints.map(footprint => `
+                <div class="footprint-card" onclick="viewFootprint(${footprint.id})">
+                    <img src="${footprint.images[0] || ''}" alt="${footprint.attractionName}"
+                         class="footprint-image"
+                         onerror="this.style.background='linear-gradient(135deg, #667eea 0%, #764ba2 100%)'">
+                    <div class="footprint-content">
+                        <div class="footprint-header">
+                            <div class="footprint-name">${footprint.attractionName}</div>
+                            <div class="footprint-date">${footprint.visitDate}</div>
+                        </div>
+                        <div class="footprint-rating">
+                            ${generateStars(footprint.rating)}
+                        </div>
+                        ${footprint.review ? `<div class="footprint-review">${footprint.review}</div>` : ''}
+                        <div class="footprint-source ${footprint.source === 'auto_from_plan' ? 'source-auto' : ''}">
+                            ${footprint.source === 'auto_from_plan' ? '自动生成' : '手动添加'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 生成星星评分显示
+        function generateStars(rating) {
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                stars += `<span class="star ${i > rating ? 'empty' : ''}">★</span>`;
+            }
+            return stars;
+        }
+
+        // 更新统计数据
+        function updateStats() {
+            // 去过的景点数
+            document.getElementById('totalCount').textContent = footprints.length;
+
+            // 走过的省份数（从景点数据中获取）
+            const provinces = new Set();
+            const cities = new Set();
+            let totalPhotos = 0;
+
+            footprints.forEach(fp => {
+                const attraction = mockAttractions.find(a => a.id === fp.attractionId);
+                if (attraction) {
+                    provinces.add(attraction.province);
+                    cities.add(attraction.city);
+                }
+                totalPhotos += fp.images.length;
+            });
+
+            document.getElementById('provincesCount').textContent = provinces.size;
+            document.getElementById('citiesCount').textContent = cities.size;
+            document.getElementById('photosCount').textContent = totalPhotos;
+        }
+
+        // 填充景点选择下拉框
+        function populateAttractionSelect() {
+            const select = document.getElementById('attractionSelect');
+            const options = mockAttractions.map(a =>
+                `<option value="${a.id}">${a.name} - ${a.city}</option>`
+            ).join('');
+            select.innerHTML = '<option value="">请选择景点</option>' + options;
+        }
+
+        // 打开添加足迹模态框
+        function openAddFootprintModal() {
+            document.getElementById('addFootprintModal').classList.add('active');
+            // 设置默认日期为今天
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('visitDate').value = today;
+        }
+
+        // 关闭添加足迹模态框
+        function closeAddFootprintModal() {
+            document.getElementById('addFootprintModal').classList.remove('active');
+            document.querySelector('form').reset();
+            setRating(5);
+        }
+
+        // 设置评分
+        function setRating(rating) {
+            selectedRating = rating;
+            document.getElementById('ratingValue').value = rating;
+
+            const stars = document.querySelectorAll('.rating-star');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+
+        // 添加足迹
+        async function addFootprint(event) {
+            event.preventDefault();
+
+            const attractionId = parseInt(document.getElementById('attractionSelect').value);
+            const visitDate = document.getElementById('visitDate').value;
+            const rating = selectedRating;
+            const review = document.getElementById('reviewText').value;
+
+            const attraction = mockAttractions.find(a => a.id === attractionId);
+            if (!attraction) {
+                showToast('请选择景点', 'error');
+                return;
+            }
+
+            showToast('正在添加足迹...', 'info');
+            await delay(1000);
+
+            const newFootprint = {
+                id: generateId(),
+                attractionId: attractionId,
+                attractionName: attraction.name,
+                visitDate: visitDate,
+                rating: rating,
+                review: review,
+                images: [attraction.image],
+                source: 'manual'
+            };
+
+            footprints.unshift(newFootprint);
+            closeAddFootprintModal();
+            renderFootprints();
+            updateStats();
+            showToast('足迹添加成功！', 'success');
+        }
+
+        // 查看足迹详情
+        function viewFootprint(id) {
+            showToast('查看足迹详情', 'info');
+            // 可以跳转到详情页或显示详情模态框
+        }
+
+        // 点击模态框背景关闭
+        document.getElementById('addFootprintModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAddFootprintModal();
+            }
+        });
+
+        // 页面加载完成后初始化
+        init();
+    </script>
+</body>
+</html>

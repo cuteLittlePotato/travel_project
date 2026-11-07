@@ -1,0 +1,43 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Node
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+npm-debug.log*
+pnpm-debug.log*
+
+# Environment（模板随仓库，真实值不入库）
+.env
+.env.local
+.env.*.local
+.env.app
+!.env.example
+!.env.example.local
+!.env.app.example
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Test / coverage
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# OS
+.DS_Store
+Thumbs.db

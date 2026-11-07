@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>景点详情 - 云游坊</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <style>
+        .detail-container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .back-btn:hover {
+            text-decoration: underline;
+        }
+
+        .detail-header {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .detail-image {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .detail-content {
+            padding: 32px;
+        }
+
+        .detail-title {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            color: #333;
+        }
+
+        .detail-meta {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .detail-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .detail-section {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .info-item {
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .action-buttons .btn {
+            flex: 1;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .detail-image {
+                height: 250px;
+            }
+
+            .detail-title {
+                font-size: 28px;
+            }
+
+            .detail-content {
+                padding: 20px;
+            }
+
+            .detail-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="home.html" class="logo">云游坊</a>
+            <ul class="nav-menu">
+                <li><a href="home.html">首页</a></li>
+                <li><a href="plans.html">我的计划</a></li>
+                <li><a href="footprints.html">足迹</a></li>
+                <li><a href="discover.html">发现</a></li>
+            </ul>
+            <div class="user-menu">
+                <div class="avatar" onclick="window.location.href='profile.html'">游</div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="detail-container">
+        <a href="home.html" class="back-btn">
+            ← 返回首页
+        </a>
+
+        <div class="detail-header">
+            <img id="attractionImage" class="detail-image" alt="景点图片">
+            <div class="detail-content">
+                <h1 class="detail-title" id="attractionName"></h1>
+                <div class="detail-meta">
+                    <div class="meta-item">
+                        <span>📍</span>
+                        <span id="attractionLocation"></span>
+                    </div>
+                    <div class="meta-item">
+                        <span>🔥</span>
+                        <span>热度：<strong id="attractionPopularity"></strong></span>
+                    </div>
+                    <div class="meta-item">
+                        <span>💰</span>
+                        <span>门票：<strong id="attractionPrice"></strong></span>
+                    </div>
+                </div>
+                <div class="detail-tags" id="attractionTags"></div>
+                <p id="attractionSummary" style="font-size: 16px; line-height: 1.8; color: #666;"></p>
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <h2 class="section-title">📋 基本信息</h2>
+            <div class="info-grid" id="basicInfo"></div>
+        </div>
+
+        <!-- 知识图谱推荐卡片 -->
+        <div class="detail-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; cursor: pointer;" onclick="window.location.href='knowledge-graph.html'">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="flex: 1;">
+                    <h2 style="color: white; margin-bottom: 12px; display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 32px;">🕸️</span>
+                        <span>探索知识图谱</span>
+                    </h2>
+                    <p style="color: rgba(255,255,255,0.9); font-size: 15px; line-height: 1.6;">
+                        深入了解故宫的历史人物、文化背景、相关事件和附近景点。通过知识图谱发现更多精彩内容！
+                    </p>
+                </div>
+                <div style="font-size: 48px; opacity: 0.3;">→</div>
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <h2 class="section-title">💡 游览建议</h2>
+            <div id="suggestions"></div>
+        </div>
+
+        <div class="detail-section">
+            <h2 class="section-title">🎯 快速操作</h2>
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="addToPlan()">加入旅游计划</button>
+                <button class="btn btn-secondary" onclick="addToFootprint()">标记为去过</button>
+                <button class="btn btn-outline" onclick="window.location.href='knowledge-graph.html'">🕸️ 查看知识图谱</button>
+                <button class="btn btn-outline" onclick="askInChat()">咨询助手</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script src="../js/mockData.js"></script>
+    <script>
+        // 获取 URL 参数
+        function getUrlParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // 加载景点详情
+        function loadAttractionDetail() {
+            const id = parseInt(getUrlParam('id'));
+            const attraction = mockAttractions.find(a => a.id === id);
+
+            if (!attraction) {
+                showToast('景点不存在', 'error');
+                setTimeout(() => window.location.href = 'home.html', 2000);
+                return;
+            }
+
+            // 填充页面内容
+            document.title = `${attraction.name} - 云游坊`;
+            document.getElementById('attractionImage').src = attraction.image;
+            document.getElementById('attractionImage').onerror = function() {
+                this.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            };
+            document.getElementById('attractionName').textContent = attraction.name;
+            document.getElementById('attractionLocation').textContent = `${attraction.province} ${attraction.city}`;
+            document.getElementById('attractionPopularity').textContent = attraction.popularity;
+            document.getElementById('attractionPrice').textContent = attraction.ticketPrice === 0 ? '免费' : `¥${attraction.ticketPrice}`;
+            document.getElementById('attractionSummary').textContent = attraction.summary;
+
+            // 标签
+            const tagsHtml = attraction.category.map(cat =>
+                `<span class="tag tag-primary">${cat}</span>`
+            ).join('');
+            document.getElementById('attractionTags').innerHTML = tagsHtml;
+
+            // 基本信息
+            const basicInfoHtml = `
+                <div class="info-item">
+                    <div class="info-label">开放时间</div>
+                    <div class="info-value">${attraction.openingHours}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">建议游玩时长</div>
+                    <div class="info-value">${Math.floor(attraction.visitDuration / 60)}小时</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">最佳季节</div>
+                    <div class="info-value">${attraction.bestSeason.join('、')}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">门票价格</div>
+                    <div class="info-value">${attraction.ticketPrice === 0 ? '免费' : `¥${attraction.ticketPrice}`}</div>
+                </div>
+            `;
+            document.getElementById('basicInfo').innerHTML = basicInfoHtml;
+
+            // 游览建议
+            const suggestionsHtml = `
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; line-height: 1.8;">
+                    <p style="margin-bottom: 12px;">🌟 <strong>热门理由：</strong>${attraction.reason}</p>
+                    <p style="margin-bottom: 12px;">⏰ <strong>最佳游览时间：</strong>${attraction.bestSeason.join('、')}，建议预留${Math.floor(attraction.visitDuration / 60)}小时游览时间</p>
+                    <p>💡 <strong>温馨提示：</strong>建议提前在线购票，避开节假日高峰期</p>
+                </div>
+            `;
+            document.getElementById('suggestions').innerHTML = suggestionsHtml;
+
+            // 存储当前景点到全局
+            window.currentAttraction = attraction;
+        }
+
+        // 加入旅游计划
+        async function addToPlan() {
+            showToast('正在添加到计划...', 'info');
+            await delay(800);
+            showToast('已添加到计划！可前往"我的计划"查看', 'success');
+        }
+
+        // 标记为去过
+        async function addToFootprint() {
+            showToast('正在标记...', 'info');
+            await delay(800);
+            showToast('已添加到足迹！可前往"足迹"查看', 'success');
+        }
+
+        // 咨询助手
+        function askInChat() {
+            const attraction = window.currentAttraction;
+            // 将景点信息传递给聊天页面
+            storage.set('chatContext', {
+                type: 'attraction',
+                data: attraction
+            });
+            window.location.href = 'chat.html';
+        }
+
+        // 页面加载完成后初始化
+        loadAttractionDetail();
+    </script>
+</body>
+</html>

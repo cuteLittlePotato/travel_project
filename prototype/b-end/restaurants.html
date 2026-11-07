@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>餐厅管理 - 云游坊后台</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <style>
+        body {
+            background: #f5f7fa;
+        }
+
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 240px;
+            background: #001529;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 20px 0;
+        }
+
+        .sidebar-menu li {
+            margin: 0;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 24px;
+            color: rgba(255,255,255,0.65);
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .menu-item:hover {
+            background: rgba(255,255,255,0.08);
+            color: white;
+        }
+
+        .menu-item.active {
+            background: #1890ff;
+            color: white;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .admin-header {
+            background: white;
+            padding: 0 30px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        .admin-header-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .admin-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        .main-content {
+            padding: 24px;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .search-box {
+            display: flex;
+            gap: 12px;
+            flex: 1;
+            max-width: 500px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .data-table {
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .data-table thead {
+            background: #f5f5f5;
+        }
+
+        .data-table th {
+            padding: 16px;
+            text-align: left;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .data-table td {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .data-table tbody tr:hover {
+            background: #fafafa;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-published {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .status-draft {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* 缩略图 */
+        .restaurant-thumb {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 24px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-modal {
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            line-height: 1;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .form-actions .btn {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">云游坊后台</div>
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html" class="menu-item">
+                    <span>📊</span>
+                    <span>数据看板</span>
+                </a></li>
+                <li><a href="attractions.html" class="menu-item">
+                    <span>🏛️</span>
+                    <span>景点管理</span>
+                </a></li>
+                <li><a href="restaurants.html" class="menu-item active">
+                    <span>🍽️</span>
+                    <span>餐厅管理</span>
+                </a></li>
+                <li><a href="hotels.html" class="menu-item">
+                    <span>🏨</span>
+                    <span>酒店管理</span>
+                </a></li>
+                <li><a href="knowledge-graph.html" class="menu-item">
+                    <span>🕸️</span>
+                    <span>知识图谱</span>
+                </a></li>
+                <li><a href="knowledge-base.html" class="menu-item">
+                    <span>📚</span>
+                    <span>RAG知识库</span>
+                </a></li>
+                <li><a href="models.html" class="menu-item">
+                    <span>🧠</span>
+                    <span>模型管理</span>
+                </a></li>
+                <li><a href="users.html" class="menu-item">
+                    <span>👥</span>
+                    <span>用户管理</span>
+                </a></li>
+                <li><a href="settings.html" class="menu-item">
+                    <span>⚙️</span>
+                    <span>系统设置</span>
+                </a></li>
+            </ul>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <header class="admin-header">
+                <div class="admin-header-title">餐厅管理</div>
+                <div class="admin-user">
+                    <span>管理员</span>
+                    <div class="avatar">管</div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <!-- 工具栏 -->
+                <div class="toolbar">
+                    <div class="search-box">
+                        <input type="text" class="search-input" placeholder="搜索餐厅名称、位置..." id="searchInput">
+                        <button class="btn btn-secondary" onclick="searchRestaurants()">搜索</button>
+                    </div>
+                    <button class="btn btn-primary" onclick="openAddModal()">+ 添加餐厅</button>
+                </div>
+
+                <!-- 数据表格 -->
+                <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>图片</th>
+                        <th>餐厅名称</th>
+                        <th>类型</th>
+                        <th>城市</th>
+                        <th>人均消费</th>
+                        <th>营业时间</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="restaurantTable">
+                    <!-- 数据通过JS渲染 -->
+                </tbody>
+            </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- 添加/编辑餐厅模态框 -->
+    <div class="modal" id="restaurantModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="modalTitle">添加餐厅</span>
+                <span class="close-modal" onclick="closeModal()">×</span>
+            </div>
+            <form onsubmit="saveRestaurant(event)">
+                <div class="form-group">
+                    <label class="form-label">餐厅名称</label>
+                    <input type="text" class="form-input" id="restaurantName" placeholder="请输入餐厅名称" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">餐厅类型</label>
+                    <select class="form-select" id="restaurantType" required>
+                        <option value="">请选择类型</option>
+                        <option value="中餐">中餐</option>
+                        <option value="西餐">西餐</option>
+                        <option value="日料">日料</option>
+                        <option value="韩餐">韩餐</option>
+                        <option value="火锅">火锅</option>
+                        <option value="烧烤">烧烤</option>
+                        <option value="快餐">快餐</option>
+                        <option value="特色小吃">特色小吃</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">省份</label>
+                    <input type="text" class="form-input" id="restaurantProvince" placeholder="如：北京市" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">城市</label>
+                    <input type="text" class="form-input" id="restaurantCity" placeholder="如：北京市" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">详细地址</label>
+                    <input type="text" class="form-input" id="restaurantAddress" placeholder="请输入详细地址" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">人均消费（元）</label>
+                    <input type="number" class="form-input" id="restaurantPrice" placeholder="请输入人均消费" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">营业时间</label>
+                    <input type="text" class="form-input" id="restaurantHours" placeholder="如：10:00-22:00">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">特色菜品</label>
+                    <input type="text" class="form-input" id="restaurantSpecialty" placeholder="用逗号分隔，如：宫保鸡丁,麻婆豆腐">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">简介</label>
+                    <textarea class="form-textarea" id="restaurantDesc" placeholder="请输入餐厅简介"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">状态</label>
+                    <select class="form-select" id="restaurantStatus">
+                        <option value="published">已发布</option>
+                        <option value="draft">草稿</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script>
+        // 模拟餐厅数据
+        let restaurants = [
+            { id: 1, name: '全聚德烤鸭店', type: '中餐', province: '北京市', city: '北京市', address: '前门大街30号', price: 180, hours: '10:00-22:00', specialty: '北京烤鸭,酥不腻烤鸭', desc: '百年老字号，正宗北京烤鸭', status: 'published', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800' },
+            { id: 2, name: '海底捞火锅', type: '火锅', province: '北京市', city: '北京市', address: '王府井大街88号', price: 120, hours: '11:00-23:00', specialty: '麻辣锅底,牛肉丸', desc: '服务一流的火锅连锁品牌', status: 'published', image: 'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=800' },
+            { id: 3, name: '外婆家', type: '中餐', province: '浙江省', city: '杭州市', address: '西湖区文三路', price: 80, hours: '10:30-21:30', specialty: '麻婆豆腐,茶香鸡', desc: '江浙菜系，性价比高', status: 'published', image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800' }
+        ];
+
+        let currentEditId = null;
+
+        // 渲染餐厅列表
+        function renderRestaurants() {
+            const tbody = document.getElementById('restaurantTable');
+            tbody.innerHTML = restaurants.map(r => `
+                <tr>
+                    <td>${r.id}</td>
+                    <td><img src="${r.image}" alt="${r.name}" class="restaurant-thumb" onerror="this.style.background='linear-gradient(135deg, #667eea 0%, #764ba2 100%)'"></td>
+                    <td><strong>${r.name}</strong><br><small style="color: #999;">🍽️ ${r.specialty}</small></td>
+                    <td><span class="tag tag-primary">${r.type}</span></td>
+                    <td>${r.city}<br><small style="color: #999;">${r.address}</small></td>
+                    <td><strong style="color: #f57c00;">¥${r.price}</strong></td>
+                    <td>${r.hours}</td>
+                    <td><span class="status-badge status-${r.status}">${r.status === 'published' ? '已发布' : '草稿'}</span></td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn btn-sm btn-outline" onclick="editRestaurant(${r.id})">编辑</button>
+                            <button class="btn btn-sm btn-outline" onclick="deleteRestaurant(${r.id})">删除</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 打开添加模态框
+        function openAddModal() {
+            currentEditId = null;
+            document.getElementById('modalTitle').textContent = '添加餐厅';
+            document.querySelector('#restaurantModal form').reset();
+            document.getElementById('restaurantModal').classList.add('active');
+        }
+
+        // 编辑餐厅
+        function editRestaurant(id) {
+            currentEditId = id;
+            const restaurant = restaurants.find(r => r.id === id);
+            if (!restaurant) return;
+
+            document.getElementById('modalTitle').textContent = '编辑餐厅';
+            document.getElementById('restaurantName').value = restaurant.name;
+            document.getElementById('restaurantType').value = restaurant.type;
+            document.getElementById('restaurantProvince').value = restaurant.province;
+            document.getElementById('restaurantCity').value = restaurant.city;
+            document.getElementById('restaurantAddress').value = restaurant.address;
+            document.getElementById('restaurantPrice').value = restaurant.price;
+            document.getElementById('restaurantHours').value = restaurant.hours;
+            document.getElementById('restaurantSpecialty').value = restaurant.specialty;
+            document.getElementById('restaurantDesc').value = restaurant.desc;
+            document.getElementById('restaurantStatus').value = restaurant.status;
+
+            document.getElementById('restaurantModal').classList.add('active');
+        }
+
+        // 保存餐厅
+        async function saveRestaurant(event) {
+            event.preventDefault();
+
+            const data = {
+                name: document.getElementById('restaurantName').value,
+                type: document.getElementById('restaurantType').value,
+                province: document.getElementById('restaurantProvince').value,
+                city: document.getElementById('restaurantCity').value,
+                address: document.getElementById('restaurantAddress').value,
+                price: parseInt(document.getElementById('restaurantPrice').value),
+                hours: document.getElementById('restaurantHours').value,
+                specialty: document.getElementById('restaurantSpecialty').value,
+                desc: document.getElementById('restaurantDesc').value,
+                status: document.getElementById('restaurantStatus').value
+            };
+
+            showToast('正在保存...', 'info');
+            await delay(800);
+
+            if (currentEditId) {
+                // 编辑
+                const index = restaurants.findIndex(r => r.id === currentEditId);
+                restaurants[index] = { ...restaurants[index], ...data };
+                showToast('餐厅更新成功！', 'success');
+            } else {
+                // 新增
+                const newId = Math.max(...restaurants.map(r => r.id)) + 1;
+                restaurants.push({ id: newId, ...data });
+                showToast('餐厅添加成功！', 'success');
+            }
+
+            closeModal();
+            renderRestaurants();
+        }
+
+        // 删除餐厅
+        function deleteRestaurant(id) {
+            showConfirm('确定要删除这个餐厅吗？', () => {
+                restaurants = restaurants.filter(r => r.id !== id);
+                renderRestaurants();
+                showToast('删除成功', 'success');
+            });
+        }
+
+        // 搜索餐厅
+        function searchRestaurants() {
+            const keyword = document.getElementById('searchInput').value;
+            if (keyword) {
+                showToast(`搜索: ${keyword}`, 'info');
+            }
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('restaurantModal').classList.remove('active');
+        }
+
+        // 点击背景关闭模态框
+        document.getElementById('restaurantModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // 初始化
+        renderRestaurants();
+    </script>
+</body>
+</html>

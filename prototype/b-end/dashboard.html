@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据看板 - 云游坊后台管理</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <style>
+        body {
+            background: #f5f7fa;
+        }
+
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 240px;
+            background: #001529;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 20px 0;
+        }
+
+        .menu-item {
+            padding: 12px 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: rgba(255,255,255,0.65);
+            text-decoration: none;
+        }
+
+        .menu-item:hover,
+        .menu-item.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .menu-item.active {
+            background: #1890ff;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .admin-header {
+            background: white;
+            padding: 0 30px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        .admin-header-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .admin-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        /* 统计卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-radius: 50%;
+            transform: translate(30%, -30%);
+        }
+
+        .stat-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #999;
+            margin-bottom: 8px;
+        }
+
+        .stat-trend {
+            font-size: 12px;
+            color: #52c41a;
+        }
+
+        .stat-trend.down {
+            color: #ff4d4f;
+        }
+
+        /* 图表区域 */
+        .chart-section {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .chart-placeholder {
+            height: 300px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* 表格 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            background: #fafafa;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            border-bottom: 2px solid #e8e8e8;
+        }
+
+        .data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .data-table tbody tr:hover {
+            background: #fafafa;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+
+            .sidebar-header,
+            .menu-item span {
+                display: none;
+            }
+
+            .menu-item {
+                justify-content: center;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">云游坊后台</div>
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html" class="menu-item active">
+                    <span>📊</span>
+                    <span>数据看板</span>
+                </a></li>
+                <li><a href="attractions.html" class="menu-item">
+                    <span>🏛️</span>
+                    <span>景点管理</span>
+                </a></li>
+                <li><a href="restaurants.html" class="menu-item">
+                    <span>🍽️</span>
+                    <span>餐厅管理</span>
+                </a></li>
+                <li><a href="hotels.html" class="menu-item">
+                    <span>🏨</span>
+                    <span>酒店管理</span>
+                </a></li>
+                <li><a href="knowledge-graph.html" class="menu-item">
+                    <span>🕸️</span>
+                    <span>知识图谱</span>
+                </a></li>
+                <li><a href="knowledge-base.html" class="menu-item">
+                    <span>📚</span>
+                    <span>RAG知识库</span>
+                </a></li>
+                <li><a href="models.html" class="menu-item">
+                    <span>🧠</span>
+                    <span>模型管理</span>
+                </a></li>
+                <li><a href="users.html" class="menu-item">
+                    <span>👥</span>
+                    <span>用户管理</span>
+                </a></li>
+                <li><a href="settings.html" class="menu-item">
+                    <span>⚙️</span>
+                    <span>系统设置</span>
+                </a></li>
+            </ul>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <header class="admin-header">
+                <div class="admin-header-title">数据看板</div>
+                <div class="admin-user">
+                    <span>管理员</span>
+                    <div class="avatar">管</div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <!-- 统计卡片 -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-value" id="totalUsers">12,580</div>
+                        <div class="stat-label">总用户数</div>
+                        <div class="stat-trend">↑ 12.5% 较上月</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔥</div>
+                        <div class="stat-value" id="activeUsers">3,456</div>
+                        <div class="stat-label">活跃用户 (DAU)</div>
+                        <div class="stat-trend">↑ 8.3% 较昨日</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📝</div>
+                        <div class="stat-value" id="totalPlans">8,750</div>
+                        <div class="stat-label">旅游计划总数</div>
+                        <div class="stat-trend">↑ 15.2% 较上月</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-value" id="completedPlans">6,200</div>
+                        <div class="stat-label">已完成计划</div>
+                        <div class="stat-trend">完成率: 71%</div>
+                    </div>
+                </div>
+
+                <!-- 用户增长趋势 -->
+                <div class="chart-section">
+                    <div class="section-header">
+                        <div class="section-title">📈 用户活跃趋势（近7天）</div>
+                        <select class="btn btn-outline" style="padding: 8px 16px;">
+                            <option>近7天</option>
+                            <option>近30天</option>
+                            <option>近90天</option>
+                        </select>
+                    </div>
+                    <div class="chart-placeholder" id="userTrendChart">
+                        <div style="text-align: center;">
+                            <div style="font-size: 48px; margin-bottom: 10px;">📊</div>
+                            <div>DAU 趋势图（实际项目中可集成 ECharts 或 Chart.js）</div>
+                            <div style="margin-top: 10px; font-size: 12px; color: #bbb;">
+                                2100 → 2300 → 2500 → 2800 → 3200 → 3400 → 3456
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; margin-bottom: 24px;">
+                    <!-- 热门景点排行 -->
+                    <div class="chart-section">
+                        <div class="section-header">
+                            <div class="section-title">🔥 热门景点排行</div>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>排名</th>
+                                    <th>景点名称</th>
+                                    <th>浏览量</th>
+                                    <th>热度</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hotAttractions">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 热门目的地 -->
+                    <div class="chart-section">
+                        <div class="section-header">
+                            <div class="section-title">🌍 热门目的地</div>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>排名</th>
+                                    <th>城市</th>
+                                    <th>计划数</th>
+                                    <th>占比</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topDestinations">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 内容统计 -->
+                <div class="chart-section">
+                    <div class="section-header">
+                        <div class="section-title">📊 内容统计</div>
+                    </div>
+                    <div class="stats-grid" style="margin: 0;">
+                        <div style="text-align: center; padding: 20px;">
+                            <div style="font-size: 36px; font-weight: bold; color: #667eea;">1,250</div>
+                            <div style="color: #999; margin-top: 8px;">景点总数</div>
+                        </div>
+                        <div style="text-align: center; padding: 20px;">
+                            <div style="font-size: 36px; font-weight: bold; color: #667eea;">3,500</div>
+                            <div style="color: #999; margin-top: 8px;">餐厅总数</div>
+                        </div>
+                        <div style="text-align: center; padding: 20px;">
+                            <div style="font-size: 36px; font-weight: bold; color: #667eea;">2,800</div>
+                            <div style="color: #999; margin-top: 8px;">酒店总数</div>
+                        </div>
+                        <div style="text-align: center; padding: 20px;">
+                            <div style="font-size: 36px; font-weight: bold; color: #667eea;">25,600</div>
+                            <div style="color: #999; margin-top: 8px;">对话总数</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script src="../js/mockData.js"></script>
+    <script>
+        // 初始化
+        function init() {
+            renderStats();
+            renderHotAttractions();
+            renderTopDestinations();
+        }
+
+        // 渲染统计数据
+        function renderStats() {
+            const stats = mockDashboardStats;
+            document.getElementById('totalUsers').textContent = stats.userStats.totalUsers.toLocaleString();
+            document.getElementById('activeUsers').textContent = stats.userStats.activeUsers.toLocaleString();
+            document.getElementById('totalPlans').textContent = stats.businessStats.totalPlans.toLocaleString();
+            document.getElementById('completedPlans').textContent = stats.businessStats.completedPlans.toLocaleString();
+        }
+
+        // 渲染热门景点
+        function renderHotAttractions() {
+            const tbody = document.getElementById('hotAttractions');
+            const attractions = [...mockAttractions]
+                .sort((a, b) => b.popularity - a.popularity)
+                .slice(0, 5);
+
+            tbody.innerHTML = attractions.map((attr, index) => `
+                <tr>
+                    <td><strong>${index + 1}</strong></td>
+                    <td>${attr.name}</td>
+                    <td>${(attr.popularity * 100).toLocaleString()}</td>
+                    <td>
+                        <span style="color: #667eea; font-weight: bold;">${attr.popularity}</span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 渲染热门目的地
+        function renderTopDestinations() {
+            const tbody = document.getElementById('topDestinations');
+            const destinations = mockDashboardStats.businessStats.topDestinations;
+            const total = destinations.reduce((sum, d) => sum + d.count, 0);
+
+            tbody.innerHTML = destinations.map((dest, index) => {
+                const percentage = ((dest.count / total) * 100).toFixed(1);
+                return `
+                    <tr>
+                        <td><strong>${index + 1}</strong></td>
+                        <td>${dest.city}</td>
+                        <td>${dest.count.toLocaleString()}</td>
+                        <td>${percentage}%</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 页面加载完成后初始化
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>知识图谱管理 - 云游坊后台</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <style>
+        body {
+            background: #f5f7fa;
+        }
+
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 240px;
+            background: #001529;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 20px 0;
+        }
+
+        .sidebar-menu li {
+            margin: 0;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 24px;
+            color: rgba(255,255,255,0.65);
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .menu-item:hover {
+            background: rgba(255,255,255,0.08);
+            color: white;
+        }
+
+        .menu-item.active {
+            background: #1890ff;
+            color: white;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .admin-header {
+            background: white;
+            padding: 0 30px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        .admin-header-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .admin-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .kg-container {
+            padding: 0;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            font-size: 15px;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            color: #667eea;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .entity-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .entity-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+        }
+
+        .entity-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+
+        .entity-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .entity-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .entity-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .entity-type {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .entity-content {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .entity-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 16px;
+        }
+
+        .entity-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .relation-list {
+            margin-top: 20px;
+        }
+
+        .relation-item {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .relation-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .relation-node {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .relation-node-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .relation-arrow {
+            color: #999;
+            font-size: 20px;
+        }
+
+        .relation-type {
+            padding: 4px 12px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .stat-icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #999;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 24px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-modal {
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            line-height: 1;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .form-actions .btn {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">云游坊后台</div>
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html" class="menu-item">
+                    <span>📊</span>
+                    <span>数据看板</span>
+                </a></li>
+                <li><a href="attractions.html" class="menu-item">
+                    <span>🏛️</span>
+                    <span>景点管理</span>
+                </a></li>
+                <li><a href="restaurants.html" class="menu-item">
+                    <span>🍽️</span>
+                    <span>餐厅管理</span>
+                </a></li>
+                <li><a href="hotels.html" class="menu-item">
+                    <span>🏨</span>
+                    <span>酒店管理</span>
+                </a></li>
+                <li><a href="knowledge-graph.html" class="menu-item active">
+                    <span>🕸️</span>
+                    <span>知识图谱</span>
+                </a></li>
+                <li><a href="knowledge-base.html" class="menu-item">
+                    <span>📚</span>
+                    <span>RAG知识库</span>
+                </a></li>
+                <li><a href="models.html" class="menu-item">
+                    <span>🧠</span>
+                    <span>模型管理</span>
+                </a></li>
+                <li><a href="users.html" class="menu-item">
+                    <span>👥</span>
+                    <span>用户管理</span>
+                </a></li>
+                <li><a href="settings.html" class="menu-item">
+                    <span>⚙️</span>
+                    <span>系统设置</span>
+                </a></li>
+            </ul>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <div class="admin-header">
+                <h1>知识图谱管理</h1>
+                <div class="admin-user">
+                    <span>管理员</span>
+                    <div class="avatar">Admin</div>
+                </div>
+            </div>
+
+            <div class="content-area">
+            <div class="kg-container">
+                <!-- 统计卡片 -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🏛️</div>
+                        <div class="stat-value">8</div>
+                        <div class="stat-label">景点实体</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">👑</div>
+                        <div class="stat-value">15</div>
+                        <div class="stat-label">历史人物</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📜</div>
+                        <div class="stat-value">12</div>
+                        <div class="stat-label">历史事件</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🏯</div>
+                        <div class="stat-value">10</div>
+                        <div class="stat-label">文化元素</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔗</div>
+                        <div class="stat-value">56</div>
+                        <div class="stat-label">关系总数</div>
+                    </div>
+                </div>
+
+                <!-- 标签页 -->
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('persons')">历史人物</button>
+                    <button class="tab" onclick="switchTab('events')">历史事件</button>
+                    <button class="tab" onclick="switchTab('cultures')">文化元素</button>
+                    <button class="tab" onclick="switchTab('relations')">关系管理</button>
+                </div>
+
+                <!-- 历史人物标签页 -->
+                <div class="tab-content active" id="persons">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>历史人物列表</h3>
+                        <button class="btn btn-primary" onclick="openPersonModal()">+ 添加人物</button>
+                    </div>
+
+                    <div class="entity-grid" id="personGrid"></div>
+                </div>
+
+                <!-- 历史事件标签页 -->
+                <div class="tab-content" id="events">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>历史事件列表</h3>
+                        <button class="btn btn-primary" onclick="openEventModal()">+ 添加事件</button>
+                    </div>
+
+                    <div class="entity-grid" id="eventGrid"></div>
+                </div>
+
+                <!-- 文化元素标签页 -->
+                <div class="tab-content" id="cultures">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>文化元素列表</h3>
+                        <button class="btn btn-primary" onclick="openCultureModal()">+ 添加文化元素</button>
+                    </div>
+
+                    <div class="entity-grid" id="cultureGrid"></div>
+                </div>
+
+                <!-- 关系管理标签页 -->
+                <div class="tab-content" id="relations">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>关系列表</h3>
+                        <button class="btn btn-primary" onclick="openRelationModal()">+ 添加关系</button>
+                    </div>
+
+                    <div class="relation-list" id="relationList"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 添加人物模态框 -->
+    <div class="modal" id="personModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="personModalTitle">添加历史人物</span>
+                <span class="close-modal" onclick="closePersonModal()">×</span>
+            </div>
+            <form onsubmit="savePerson(event)">
+                <div class="form-group">
+                    <label class="form-label">姓名</label>
+                    <input type="text" class="form-input" id="personName" placeholder="请输入姓名" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">朝代/年代</label>
+                    <input type="text" class="form-input" id="personDynasty" placeholder="如：明朝、清朝" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">职业</label>
+                    <input type="text" class="form-input" id="personOccupation" placeholder="如：皇帝、诗人、建筑师">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">简介</label>
+                    <textarea class="form-textarea" id="personDesc" placeholder="请输入人物简介"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closePersonModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 添加事件模态框 -->
+    <div class="modal" id="eventModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>添加历史事件</span>
+                <span class="close-modal" onclick="closeEventModal()">×</span>
+            </div>
+            <form onsubmit="saveEvent(event)">
+                <div class="form-group">
+                    <label class="form-label">事件名称</label>
+                    <input type="text" class="form-input" id="eventName" placeholder="请输入事件名称" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">发生时间</label>
+                    <input type="text" class="form-input" id="eventTime" placeholder="如：1420年、明永乐十八年" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">发生地点</label>
+                    <input type="text" class="form-input" id="eventLocation" placeholder="请输入地点">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">事件描述</label>
+                    <textarea class="form-textarea" id="eventDesc" placeholder="请输入事件描述"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeEventModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 添加文化元素模态框 -->
+    <div class="modal" id="cultureModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>添加文化元素</span>
+                <span class="close-modal" onclick="closeCultureModal()">×</span>
+            </div>
+            <form onsubmit="saveCulture(event)">
+                <div class="form-group">
+                    <label class="form-label">元素名称</label>
+                    <input type="text" class="form-input" id="cultureName" placeholder="请输入名称" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">类型</label>
+                    <select class="form-select" id="cultureType">
+                        <option value="建筑风格">建筑风格</option>
+                        <option value="艺术形式">艺术形式</option>
+                        <option value="民俗活动">民俗活动</option>
+                        <option value="地方特产">地方特产</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">描述</label>
+                    <textarea class="form-textarea" id="cultureDesc" placeholder="请输入描述"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeCultureModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 添加关系模态框 -->
+    <div class="modal" id="relationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>添加关系</span>
+                <span class="close-modal" onclick="closeRelationModal()">×</span>
+            </div>
+            <form onsubmit="saveRelation(event)">
+                <div class="form-group">
+                    <label class="form-label">起始实体</label>
+                    <select class="form-select" id="relationFrom" required>
+                        <option value="">请选择景点</option>
+                        <option value="gugong">故宫博物院</option>
+                        <option value="tiantan">天坛</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">关系类型</label>
+                    <select class="form-select" id="relationType" required>
+                        <option value="建造者">建造者</option>
+                        <option value="相关人物">相关人物</option>
+                        <option value="事件发生地">事件发生地</option>
+                        <option value="建筑风格">建筑风格</option>
+                        <option value="附近景点">附近景点</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">目标实体</label>
+                    <select class="form-select" id="relationTo" required>
+                        <option value="">请选择实体</option>
+                        <option value="zhudi">朱棣</option>
+                        <option value="kangxi">康熙帝</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">关系描述（可选）</label>
+                    <input type="text" class="form-input" id="relationDesc" placeholder="如：距离5公里">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeRelationModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script>
+        // 模拟数据
+        let persons = [
+            { id: 1, name: '朱棣', dynasty: '明朝', occupation: '皇帝', desc: '明朝第三位皇帝，年号永乐。迁都北京，下令修建故宫。' },
+            { id: 2, name: '康熙帝', dynasty: '清朝', occupation: '皇帝', desc: '清朝第四位皇帝，在位61年。' },
+            { id: 3, name: '乾隆帝', dynasty: '清朝', occupation: '皇帝', desc: '清朝第六位皇帝，文治武功达到顶峰。' }
+        ];
+
+        let events = [
+            { id: 1, name: '紫禁城建成', time: '1420年', location: '北京', desc: '明成祖朱棣迁都北京，紫禁城正式建成。' },
+            { id: 2, name: '清军入关', time: '1644年', location: '山海关', desc: '清军入关，定都北京，紫禁城成为清朝皇宫。' }
+        ];
+
+        let cultures = [
+            { id: 1, name: '明清建筑风格', type: '建筑风格', desc: '中国古代建筑的巅峰之作，体现了中国传统建筑艺术的最高水平。' },
+            { id: 2, name: '宫廷文化', type: '艺术形式', desc: '明清两代宫廷文化的集中体现。' }
+        ];
+
+        let relations = [
+            { id: 1, from: '故宫博物院', to: '朱棣', type: '建造者', desc: '' },
+            { id: 2, from: '故宫博物院', to: '明清建筑风格', type: '建筑风格', desc: '' },
+            { id: 3, from: '故宫博物院', to: '天坛', type: '附近景点', desc: '距离约5公里' }
+        ];
+
+        let currentEditId = null;
+
+        // 初始化
+        function init() {
+            renderPersons();
+            renderEvents();
+            renderCultures();
+            renderRelations();
+        }
+
+        // 切换标签页
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        // 渲染人物列表
+        function renderPersons() {
+            const grid = document.getElementById('personGrid');
+            grid.innerHTML = persons.map(person => `
+                <div class="entity-card">
+                    <div class="entity-header">
+                        <div class="entity-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                            👑
+                        </div>
+                        <div>
+                            <div class="entity-name">${person.name}</div>
+                            <div class="entity-type">${person.dynasty} · ${person.occupation}</div>
+                        </div>
+                    </div>
+                    <div class="entity-content">${person.desc}</div>
+                    <div class="entity-actions">
+                        <button class="btn btn-sm btn-outline" onclick="editPerson(${person.id})">编辑</button>
+                        <button class="btn btn-sm btn-outline" onclick="deletePerson(${person.id})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 渲染事件列表
+        function renderEvents() {
+            const grid = document.getElementById('eventGrid');
+            grid.innerHTML = events.map(event => `
+                <div class="entity-card">
+                    <div class="entity-header">
+                        <div class="entity-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            📜
+                        </div>
+                        <div>
+                            <div class="entity-name">${event.name}</div>
+                            <div class="entity-type">${event.time}</div>
+                        </div>
+                    </div>
+                    <div class="entity-meta">
+                        <span>📍 ${event.location}</span>
+                    </div>
+                    <div class="entity-content">${event.desc}</div>
+                    <div class="entity-actions">
+                        <button class="btn btn-sm btn-outline" onclick="editEvent(${event.id})">编辑</button>
+                        <button class="btn btn-sm btn-outline" onclick="deleteEvent(${event.id})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 渲染文化元素列表
+        function renderCultures() {
+            const grid = document.getElementById('cultureGrid');
+            grid.innerHTML = cultures.map(culture => `
+                <div class="entity-card">
+                    <div class="entity-header">
+                        <div class="entity-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            🏯
+                        </div>
+                        <div>
+                            <div class="entity-name">${culture.name}</div>
+                            <div class="entity-type">${culture.type}</div>
+                        </div>
+                    </div>
+                    <div class="entity-content">${culture.desc}</div>
+                    <div class="entity-actions">
+                        <button class="btn btn-sm btn-outline" onclick="editCulture(${culture.id})">编辑</button>
+                        <button class="btn btn-sm btn-outline" onclick="deleteCulture(${culture.id})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 渲染关系列表
+        function renderRelations() {
+            const list = document.getElementById('relationList');
+            list.innerHTML = relations.map(rel => `
+                <div class="relation-item">
+                    <div class="relation-info">
+                        <div class="relation-node">
+                            <div class="relation-node-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                🏛️
+                            </div>
+                            <span>${rel.from}</span>
+                        </div>
+                        <div class="relation-type">${rel.type}</div>
+                        <div class="relation-arrow">→</div>
+                        <div class="relation-node">
+                            <div class="relation-node-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                                👑
+                            </div>
+                            <span>${rel.to}</span>
+                        </div>
+                        ${rel.desc ? `<span style="color: #999; font-size: 13px;">${rel.desc}</span>` : ''}
+                    </div>
+                    <div class="entity-actions">
+                        <button class="btn btn-sm btn-outline" onclick="deleteRelation(${rel.id})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 模态框控制
+        function openPersonModal() {
+            currentEditId = null;
+            document.getElementById('personModalTitle').textContent = '添加历史人物';
+            document.querySelector('#personModal form').reset();
+            document.getElementById('personModal').classList.add('active');
+        }
+
+        function closePersonModal() {
+            currentEditId = null;
+            document.getElementById('personModal').classList.remove('active');
+            document.querySelector('#personModal form').reset();
+        }
+
+        function openEventModal() {
+            currentEditId = null;
+            document.querySelector('#eventModal form').reset();
+            document.getElementById('eventModal').classList.add('active');
+        }
+
+        function closeEventModal() {
+            currentEditId = null;
+            document.getElementById('eventModal').classList.remove('active');
+            document.querySelector('#eventModal form').reset();
+        }
+
+        function openCultureModal() {
+            currentEditId = null;
+            document.querySelector('#cultureModal form').reset();
+            document.getElementById('cultureModal').classList.add('active');
+        }
+
+        function closeCultureModal() {
+            currentEditId = null;
+            document.getElementById('cultureModal').classList.remove('active');
+            document.querySelector('#cultureModal form').reset();
+        }
+
+        function openRelationModal() {
+            currentEditId = null;
+            document.querySelector('#relationModal form').reset();
+            document.getElementById('relationModal').classList.add('active');
+        }
+
+        function closeRelationModal() {
+            currentEditId = null;
+            document.getElementById('relationModal').classList.remove('active');
+            document.querySelector('#relationModal form').reset();
+        }
+
+        // 保存功能
+        async function savePerson(event) {
+            event.preventDefault();
+            const person = {
+                name: document.getElementById('personName').value,
+                dynasty: document.getElementById('personDynasty').value,
+                occupation: document.getElementById('personOccupation').value,
+                desc: document.getElementById('personDesc').value
+            };
+
+            showToast('正在保存...', 'info');
+            await delay(800);
+
+            if (currentEditId) {
+                // 编辑模式
+                const index = persons.findIndex(p => p.id === currentEditId);
+                persons[index] = { ...persons[index], ...person };
+                showToast('人物更新成功！', 'success');
+            } else {
+                // 新增模式
+                const newId = persons.length > 0 ? Math.max(...persons.map(p => p.id)) + 1 : 1;
+                persons.push({ id: newId, ...person });
+                showToast('人物添加成功！', 'success');
+            }
+
+            currentEditId = null;
+            closePersonModal();
+            renderPersons();
+        }
+
+        async function saveEvent(event) {
+            event.preventDefault();
+            const eventData = {
+                name: document.getElementById('eventName').value,
+                time: document.getElementById('eventTime').value,
+                location: document.getElementById('eventLocation').value,
+                desc: document.getElementById('eventDesc').value
+            };
+
+            showToast('正在保存...', 'info');
+            await delay(800);
+
+            if (currentEditId) {
+                // 编辑模式
+                const index = events.findIndex(e => e.id === currentEditId);
+                events[index] = { ...events[index], ...eventData };
+                showToast('事件更新成功！', 'success');
+            } else {
+                // 新增模式
+                const newId = events.length > 0 ? Math.max(...events.map(e => e.id)) + 1 : 1;
+                events.push({ id: newId, ...eventData });
+                showToast('事件添加成功！', 'success');
+            }
+
+            currentEditId = null;
+            closeEventModal();
+            renderEvents();
+        }
+
+        async function saveCulture(event) {
+            event.preventDefault();
+            const culture = {
+                name: document.getElementById('cultureName').value,
+                type: document.getElementById('cultureType').value,
+                desc: document.getElementById('cultureDesc').value
+            };
+
+            showToast('正在保存...', 'info');
+            await delay(800);
+
+            if (currentEditId) {
+                // 编辑模式
+                const index = cultures.findIndex(c => c.id === currentEditId);
+                cultures[index] = { ...cultures[index], ...culture };
+                showToast('文化元素更新成功！', 'success');
+            } else {
+                // 新增模式
+                const newId = cultures.length > 0 ? Math.max(...cultures.map(c => c.id)) + 1 : 1;
+                cultures.push({ id: newId, ...culture });
+                showToast('文化元素添加成功！', 'success');
+            }
+
+            currentEditId = null;
+            closeCultureModal();
+            renderCultures();
+        }
+
+        async function saveRelation(event) {
+            event.preventDefault();
+            const relation = {
+                id: relations.length + 1,
+                from: document.getElementById('relationFrom').options[document.getElementById('relationFrom').selectedIndex].text,
+                to: document.getElementById('relationTo').options[document.getElementById('relationTo').selectedIndex].text,
+                type: document.getElementById('relationType').value,
+                desc: document.getElementById('relationDesc').value
+            };
+
+            showToast('正在保存...', 'info');
+            await delay(800);
+
+            relations.push(relation);
+            renderRelations();
+            closeRelationModal();
+            showToast('关系添加成功！', 'success');
+        }
+
+        // 删除功能
+        function deletePerson(id) {
+            showConfirm('确定要删除这个人物吗？', () => {
+                persons = persons.filter(p => p.id !== id);
+                renderPersons();
+                showToast('删除成功', 'success');
+            });
+        }
+
+        function deleteEvent(id) {
+            showConfirm('确定要删除这个事件吗？', () => {
+                events = events.filter(e => e.id !== id);
+                renderEvents();
+                showToast('删除成功', 'success');
+            });
+        }
+
+        function deleteCulture(id) {
+            showConfirm('确定要删除这个文化元素吗？', () => {
+                cultures = cultures.filter(c => c.id !== id);
+                renderCultures();
+                showToast('删除成功', 'success');
+            });
+        }
+
+        function deleteRelation(id) {
+            showConfirm('确定要删除这个关系吗？', () => {
+                relations = relations.filter(r => r.id !== id);
+                renderRelations();
+                showToast('删除成功', 'success');
+            });
+        }
+
+        // 编辑功能（简化版，只显示提示）
+        function editPerson(id) {
+            const person = persons.find(p => p.id === id);
+            if (!person) return;
+
+            document.getElementById('personModalTitle').textContent = '编辑历史人物';
+            document.getElementById('personName').value = person.name;
+            document.getElementById('personDynasty').value = person.dynasty;
+            document.getElementById('personOccupation').value = person.occupation;
+            document.getElementById('personDesc').value = person.desc;
+
+            currentEditId = id;
+            document.getElementById('personModal').classList.add('active');
+        }
+
+        function editEvent(id) {
+            const event = events.find(e => e.id === id);
+            if (!event) return;
+
+            document.getElementById('eventName').value = event.name;
+            document.getElementById('eventTime').value = event.time;
+            document.getElementById('eventLocation').value = event.location;
+            document.getElementById('eventDesc').value = event.desc;
+
+            currentEditId = id;
+            document.getElementById('eventModal').classList.add('active');
+        }
+
+        function editCulture(id) {
+            const culture = cultures.find(c => c.id === id);
+            if (!culture) return;
+
+            document.getElementById('cultureName').value = culture.name;
+            document.getElementById('cultureType').value = culture.type;
+            document.getElementById('cultureDesc').value = culture.desc;
+
+            currentEditId = id;
+            document.getElementById('cultureModal').classList.add('active');
+        }
+
+        // 初始化
+        init();
+    </script>
+    </div>
+    </main>
+    </div>
+</body>
+</html>

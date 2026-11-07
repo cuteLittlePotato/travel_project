@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理 - 云游坊后台管理</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <style>
+        body {
+            background: #f5f7fa;
+        }
+
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 240px;
+            background: #001529;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 20px 0;
+        }
+
+        .menu-item {
+            padding: 12px 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: rgba(255,255,255,0.65);
+            text-decoration: none;
+        }
+
+        .menu-item:hover,
+        .menu-item.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .menu-item.active {
+            background: #1890ff;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .admin-header {
+            background: white;
+            padding: 0 30px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        .admin-header-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .admin-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        /* 工具栏 */
+        .toolbar {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .search-box {
+            flex: 1;
+            max-width: 400px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .search-box input {
+            flex: 1;
+        }
+
+        /* 数据表格 */
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            background: #fafafa;
+            padding: 16px;
+            text-align: left;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            border-bottom: 2px solid #e8e8e8;
+        }
+
+        .data-table td {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .data-table tbody tr:hover {
+            background: #fafafa;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-active {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .status-banned {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 4px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-view {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .btn-view:hover {
+            background: #1976d2;
+            color: white;
+        }
+
+        .btn-ban {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .btn-ban:hover {
+            background: #d32f2f;
+            color: white;
+        }
+
+        .btn-unban {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .btn-unban:hover {
+            background: #388e3c;
+            color: white;
+        }
+
+        /* 用户详情模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 24px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-modal {
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            line-height: 1;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .user-detail-section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .detail-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .stat-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card-small {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-card-small .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 4px;
+        }
+
+        .stat-card-small .label {
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* 分页 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 20px;
+            background: white;
+        }
+
+        .page-btn {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .page-btn:hover:not(:disabled),
+        .page-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+
+            .sidebar-header,
+            .menu-item span {
+                display: none;
+            }
+
+            .detail-grid,
+            .stat-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">云游坊后台</div>
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html" class="menu-item">
+                    <span>📊</span>
+                    <span>数据看板</span>
+                </a></li>
+                <li><a href="attractions.html" class="menu-item">
+                    <span>🏛️</span>
+                    <span>景点管理</span>
+                </a></li>
+                <li><a href="restaurants.html" class="menu-item">
+                    <span>🍽️</span>
+                    <span>餐厅管理</span>
+                </a></li>
+                <li><a href="hotels.html" class="menu-item">
+                    <span>🏨</span>
+                    <span>酒店管理</span>
+                </a></li>
+                <li><a href="knowledge-graph.html" class="menu-item">
+                    <span>🕸️</span>
+                    <span>知识图谱</span>
+                </a></li>
+                <li><a href="knowledge-base.html" class="menu-item">
+                    <span>📚</span>
+                    <span>RAG知识库</span>
+                </a></li>
+                <li><a href="models.html" class="menu-item">
+                    <span>🧠</span>
+                    <span>模型管理</span>
+                </a></li>
+                <li><a href="users.html" class="menu-item active">
+                    <span>👥</span>
+                    <span>用户管理</span>
+                </a></li>
+                <li><a href="settings.html" class="menu-item">
+                    <span>⚙️</span>
+                    <span>系统设置</span>
+                </a></li>
+            </ul>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <header class="admin-header">
+                <div class="admin-header-title">用户管理</div>
+                <div class="admin-user">
+                    <span>管理员</span>
+                    <div class="avatar">管</div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <!-- 工具栏 -->
+                <div class="toolbar">
+                    <div class="search-box">
+                        <input type="text" class="input" id="searchInput" placeholder="搜索用户名、手机号、邮箱...">
+                        <button class="btn btn-secondary" onclick="searchUsers()">搜索</button>
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <select class="btn btn-outline" id="statusFilter" onchange="filterUsers()">
+                            <option value="">全部状态</option>
+                            <option value="active">正常</option>
+                            <option value="banned">已封禁</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 数据表格 -->
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>头像</th>
+                                <th>用户名</th>
+                                <th>手机号</th>
+                                <th>邮箱</th>
+                                <th>注册时间</th>
+                                <th>最后登录</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTable">
+                        </tbody>
+                    </table>
+                    <div class="pagination" id="pagination"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 用户详情模态框 -->
+    <div class="modal" id="userDetailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>用户详情</span>
+                <span class="close-modal" onclick="closeModal()">×</span>
+            </div>
+
+            <div class="user-detail-section">
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <span class="detail-label">用户名</span>
+                        <span class="detail-value" id="detailUsername"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">昵称</span>
+                        <span class="detail-value" id="detailNickname"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">手机号</span>
+                        <span class="detail-value" id="detailPhone"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">邮箱</span>
+                        <span class="detail-value" id="detailEmail"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">注册时间</span>
+                        <span class="detail-value" id="detailCreatedAt"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">最后登录</span>
+                        <span class="detail-value" id="detailLastLogin"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="user-detail-section">
+                <div class="section-title">数据统计</div>
+                <div class="stat-cards">
+                    <div class="stat-card-small">
+                        <div class="value" id="detailPlanCount">0</div>
+                        <div class="label">旅游计划</div>
+                    </div>
+                    <div class="stat-card-small">
+                        <div class="value" id="detailFootprintCount">0</div>
+                        <div class="label">足迹记录</div>
+                    </div>
+                    <div class="stat-card-small">
+                        <div class="value" id="detailChatCount">0</div>
+                        <div class="label">对话次数</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="user-detail-section">
+                <div class="section-title">用户偏好</div>
+                <div style="padding: 16px; background: #f8f9fa; border-radius: 8px;">
+                    <p style="color: #666; line-height: 1.8;">
+                        • 喜欢类型：历史人文 (70%)、自然景色 (30%)<br>
+                        • 预算敏感度：中等<br>
+                        • 平均旅行天数：3-4天<br>
+                        • 常见同伴：家庭
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script src="../js/mockData.js"></script>
+    <script>
+        // 生成模拟用户数据
+        let allUsers = Array.from({length: 50}, (_, i) => ({
+            id: i + 1,
+            username: `user${String(i + 1).padStart(3, '0')}`,
+            nickname: `旅行者${i + 1}`,
+            phone: `138****${String(1000 + i).slice(-4)}`,
+            email: `user${i + 1}@example.com`,
+            createdAt: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            lastLoginAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: Math.random() > 0.95 ? 'banned' : 'active'
+        }));
+
+        let users = [...allUsers];
+        let currentPage = 1;
+        let pageSize = 10;
+
+        // 初始化
+        function init() {
+            renderTable();
+        }
+
+        // 渲染表格
+        function renderTable() {
+            const tbody = document.getElementById('usersTable');
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageData = users.slice(start, end);
+
+            tbody.innerHTML = pageData.map(user => `
+                <tr>
+                    <td>${user.id}</td>
+                    <td>
+                        <div class="user-avatar">${user.nickname[0]}</div>
+                    </td>
+                    <td><strong>${user.username}</strong></td>
+                    <td>${user.phone}</td>
+                    <td>${user.email}</td>
+                    <td>${user.createdAt}</td>
+                    <td>${user.lastLoginAt}</td>
+                    <td>
+                        <span class="status-badge ${user.status === 'active' ? 'status-active' : 'status-banned'}">
+                            ${user.status === 'active' ? '正常' : '已封禁'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="action-btn btn-view" onclick="viewUserDetail(${user.id})">查看</button>
+                            ${user.status === 'active'
+                                ? `<button class="action-btn btn-ban" onclick="banUser(${user.id})">封禁</button>`
+                                : `<button class="action-btn btn-unban" onclick="unbanUser(${user.id})">解封</button>`
+                            }
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            renderPagination();
+        }
+
+        // 渲染分页
+        function renderPagination() {
+            const totalPages = Math.ceil(users.length / pageSize);
+            const pagination = document.getElementById('pagination');
+
+            let html = `
+                <button class="page-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>
+            `;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+                } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    html += `<span>...</span>`;
+                }
+            }
+
+            html += `
+                <button class="page-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>
+            `;
+
+            pagination.innerHTML = html;
+        }
+
+        // 切换页码
+        function changePage(page) {
+            const totalPages = Math.ceil(users.length / pageSize);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderTable();
+        }
+
+        // 搜索用户
+        function searchUsers() {
+            const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+            if (!keyword) {
+                users = [...allUsers];
+            } else {
+                users = allUsers.filter(u =>
+                    u.username.toLowerCase().includes(keyword) ||
+                    u.phone.includes(keyword) ||
+                    u.email.toLowerCase().includes(keyword)
+                );
+            }
+            currentPage = 1;
+            renderTable();
+        }
+
+        // 过滤用户
+        function filterUsers() {
+            const status = document.getElementById('statusFilter').value;
+            if (!status) {
+                users = [...allUsers];
+            } else {
+                users = allUsers.filter(u => u.status === status);
+            }
+            currentPage = 1;
+            renderTable();
+        }
+
+        // 查看用户详情
+        function viewUserDetail(id) {
+            const user = allUsers.find(u => u.id === id);
+            if (!user) return;
+
+            document.getElementById('detailUsername').textContent = user.username;
+            document.getElementById('detailNickname').textContent = user.nickname;
+            document.getElementById('detailPhone').textContent = user.phone;
+            document.getElementById('detailEmail').textContent = user.email;
+            document.getElementById('detailCreatedAt').textContent = user.createdAt;
+            document.getElementById('detailLastLogin').textContent = user.lastLoginAt;
+
+            // 模拟统计数据
+            document.getElementById('detailPlanCount').textContent = Math.floor(Math.random() * 20);
+            document.getElementById('detailFootprintCount').textContent = Math.floor(Math.random() * 30);
+            document.getElementById('detailChatCount').textContent = Math.floor(Math.random() * 50);
+
+            document.getElementById('userDetailModal').classList.add('active');
+        }
+
+        // 封禁用户
+        async function banUser(id) {
+            if (confirm('确定要封禁这个用户吗？')) {
+                showToast('正在封禁...', 'info');
+                await delay(800);
+
+                const user = allUsers.find(u => u.id === id);
+                if (user) {
+                    user.status = 'banned';
+                    users = [...allUsers];
+                    renderTable();
+                    showToast('用户已封禁', 'success');
+                }
+            }
+        }
+
+        // 解封用户
+        async function unbanUser(id) {
+            if (confirm('确定要解封这个用户吗？')) {
+                showToast('正在解封...', 'info');
+                await delay(800);
+
+                const user = allUsers.find(u => u.id === id);
+                if (user) {
+                    user.status = 'active';
+                    users = [...allUsers];
+                    renderTable();
+                    showToast('用户已解封', 'success');
+                }
+            }
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('userDetailModal').classList.remove('active');
+        }
+
+        // 点击模态框背景关闭
+        document.getElementById('userDetailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // 页面加载完成后初始化
+        init();
+    </script>
+</body>
+</html>

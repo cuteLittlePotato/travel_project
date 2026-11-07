@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>酒店管理 - 云游坊后台</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <style>
+        body {
+            background: #f5f7fa;
+        }
+
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 240px;
+            background: #001529;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 20px 0;
+        }
+
+        .sidebar-menu li {
+            margin: 0;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 24px;
+            color: rgba(255,255,255,0.65);
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .menu-item:hover {
+            background: rgba(255,255,255,0.08);
+            color: white;
+        }
+
+        .menu-item.active {
+            background: #1890ff;
+            color: white;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .admin-header {
+            background: white;
+            padding: 0 30px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        .admin-header-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .admin-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        .main-content {
+            padding: 24px;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .search-box {
+            display: flex;
+            gap: 12px;
+            flex: 1;
+            max-width: 500px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .data-table {
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .data-table thead {
+            background: #f5f5f5;
+        }
+
+        .data-table th {
+            padding: 16px;
+            text-align: left;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .data-table td {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .data-table tbody tr:hover {
+            background: #fafafa;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-published {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .status-draft {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .star-rating {
+            color: #ffa726;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* 缩略图 */
+        .hotel-thumb {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 24px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-modal {
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            line-height: 1;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .form-actions .btn {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">云游坊后台</div>
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html" class="menu-item">
+                    <span>📊</span>
+                    <span>数据看板</span>
+                </a></li>
+                <li><a href="attractions.html" class="menu-item">
+                    <span>🏛️</span>
+                    <span>景点管理</span>
+                </a></li>
+                <li><a href="restaurants.html" class="menu-item">
+                    <span>🍽️</span>
+                    <span>餐厅管理</span>
+                </a></li>
+                <li><a href="hotels.html" class="menu-item active">
+                    <span>🏨</span>
+                    <span>酒店管理</span>
+                </a></li>
+                <li><a href="knowledge-graph.html" class="menu-item">
+                    <span>🕸️</span>
+                    <span>知识图谱</span>
+                </a></li>
+                <li><a href="knowledge-base.html" class="menu-item">
+                    <span>📚</span>
+                    <span>RAG知识库</span>
+                </a></li>
+                <li><a href="models.html" class="menu-item">
+                    <span>🧠</span>
+                    <span>模型管理</span>
+                </a></li>
+                <li><a href="users.html" class="menu-item">
+                    <span>👥</span>
+                    <span>用户管理</span>
+                </a></li>
+                <li><a href="settings.html" class="menu-item">
+                    <span>⚙️</span>
+                    <span>系统设置</span>
+                </a></li>
+            </ul>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <header class="admin-header">
+                <div class="admin-header-title">酒店管理</div>
+                <div class="admin-user">
+                    <span>管理员</span>
+                    <div class="avatar">管</div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <!-- 工具栏 -->
+                <div class="toolbar">
+                    <div class="search-box">
+                        <input type="text" class="search-input" placeholder="搜索酒店名称、位置..." id="searchInput">
+                        <button class="btn btn-secondary" onclick="searchHotels()">搜索</button>
+                    </div>
+                    <button class="btn btn-primary" onclick="openAddModal()">+ 添加酒店</button>
+                </div>
+
+                <!-- 数据表格 -->
+                <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>图片</th>
+                        <th>酒店名称</th>
+                        <th>星级</th>
+                        <th>城市</th>
+                        <th>价格区间</th>
+                        <th>房型</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="hotelTable">
+                    <!-- 数据通过JS渲染 -->
+                </tbody>
+            </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- 添加/编辑酒店模态框 -->
+    <div class="modal" id="hotelModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="modalTitle">添加酒店</span>
+                <span class="close-modal" onclick="closeModal()">×</span>
+            </div>
+            <form onsubmit="saveHotel(event)">
+                <div class="form-group">
+                    <label class="form-label">酒店名称</label>
+                    <input type="text" class="form-input" id="hotelName" placeholder="请输入酒店名称" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">星级</label>
+                    <select class="form-select" id="hotelStar" required>
+                        <option value="">请选择星级</option>
+                        <option value="5星级">5星级</option>
+                        <option value="4星级">4星级</option>
+                        <option value="3星级">3星级</option>
+                        <option value="经济型">经济型</option>
+                        <option value="精品酒店">精品酒店</option>
+                        <option value="民宿">民宿</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">省份</label>
+                    <input type="text" class="form-input" id="hotelProvince" placeholder="如：北京市" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">城市</label>
+                    <input type="text" class="form-input" id="hotelCity" placeholder="如：北京市" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">详细地址</label>
+                    <input type="text" class="form-input" id="hotelAddress" placeholder="请输入详细地址" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">最低价格（元/晚）</label>
+                    <input type="number" class="form-input" id="hotelMinPrice" placeholder="请输入最低价格" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">最高价格（元/晚）</label>
+                    <input type="number" class="form-input" id="hotelMaxPrice" placeholder="请输入最高价格" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">房型</label>
+                    <input type="text" class="form-input" id="hotelRoomTypes" placeholder="用逗号分隔，如：大床房,双床房,套房">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">设施</label>
+                    <input type="text" class="form-input" id="hotelFacilities" placeholder="用逗号分隔，如：WiFi,停车场,健身房,游泳池">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">简介</label>
+                    <textarea class="form-textarea" id="hotelDesc" placeholder="请输入酒店简介"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">状态</label>
+                    <select class="form-select" id="hotelStatus">
+                        <option value="published">已发布</option>
+                        <option value="draft">草稿</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script>
+        // 模拟酒店数据
+        let hotels = [
+            { id: 1, name: '北京王府井希尔顿酒店', star: '5星级', province: '北京市', city: '北京市', address: '王府井大街8号', minPrice: 800, maxPrice: 2000, roomTypes: '大床房,双床房,行政套房', facilities: 'WiFi,停车场,健身房,游泳池,餐厅', desc: '位于市中心的豪华酒店', status: 'published', image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800' },
+            { id: 2, name: '如家快捷酒店', star: '经济型', province: '北京市', city: '北京市', address: '朝阳区建国路88号', minPrice: 200, maxPrice: 350, roomTypes: '大床房,双床房', facilities: 'WiFi,早餐', desc: '经济实惠，干净卫生', status: 'published', image: 'https://images.unsplash.com/photo-1455587734955-081b22074882?w=800' },
+            { id: 3, name: '西湖国宾馆', star: '5星级', province: '浙江省', city: '杭州市', address: '西湖区杨公堤18号', minPrice: 1200, maxPrice: 3500, roomTypes: '湖景房,豪华套房,总统套房', facilities: 'WiFi,停车场,SPA,餐厅,会议室', desc: '西湖畔的顶级度假酒店', status: 'published', image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800' }
+        ];
+
+        let currentEditId = null;
+
+        // 渲染酒店列表
+        function renderHotels() {
+            const tbody = document.getElementById('hotelTable');
+            tbody.innerHTML = hotels.map(h => `
+                <tr>
+                    <td>${h.id}</td>
+                    <td><img src="${h.image}" alt="${h.name}" class="hotel-thumb" onerror="this.style.background='linear-gradient(135deg, #667eea 0%, #764ba2 100%)'"></td>
+                    <td><strong>${h.name}</strong><br><small style="color: #999;">🏨 ${h.facilities.split(',').slice(0, 3).join(', ')}</small></td>
+                    <td><span class="tag" style="background: rgba(255, 167, 38, 0.1); color: #ffa726;">⭐ ${h.star}</span></td>
+                    <td>${h.city}<br><small style="color: #999;">${h.address}</small></td>
+                    <td><strong style="color: #e91e63;">¥${h.minPrice} - ¥${h.maxPrice}</strong></td>
+                    <td>${h.roomTypes.split(',').length} 种房型</td>
+                    <td><span class="status-badge status-${h.status}">${h.status === 'published' ? '已发布' : '草稿'}</span></td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn btn-sm btn-outline" onclick="editHotel(${h.id})">编辑</button>
+                            <button class="btn btn-sm btn-outline" onclick="deleteHotel(${h.id})">删除</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 打开添加模态框
+        function openAddModal() {
+            currentEditId = null;
+            document.getElementById('modalTitle').textContent = '添加酒店';
+            document.querySelector('#hotelModal form').reset();
+            document.getElementById('hotelModal').classList.add('active');
+        }
+
+        // 编辑酒店
+        function editHotel(id) {
+            currentEditId = id;
+            const hotel = hotels.find(h => h.id === id);
+            if (!hotel) return;
+
+            document.getElementById('modalTitle').textContent = '编辑酒店';
+            document.getElementById('hotelName').value = hotel.name;
+            document.getElementById('hotelStar').value = hotel.star;
+            document.getElementById('hotelProvince').value = hotel.province;
+            document.getElementById('hotelCity').value = hotel.city;
+            document.getElementById('hotelAddress').value = hotel.address;
+            document.getElementById('hotelMinPrice').value = hotel.minPrice;
+            document.getElementById('hotelMaxPrice').value = hotel.maxPrice;
+            document.getElementById('hotelRoomTypes').value = hotel.roomTypes;
+            document.getElementById('hotelFacilities').value = hotel.facilities;
+            document.getElementById('hotelDesc').value = hotel.desc;
+            document.getElementById('hotelStatus').value = hotel.status;
+
+            document.getElementById('hotelModal').classList.add('active');
+        }
+
+        // 保存酒店
+        async function saveHotel(event) {
+            event.preventDefault();
+
+            const data = {
+                name: document.getElementById('hotelName').value,
+                star: document.getElementById('hotelStar').value,
+                province: document.getElementById('hotelProvince').value,
+                city: document.getElementById('hotelCity').value,
+                address: document.getElementById('hotelAddress').value,
+                minPrice: parseInt(document.getElementById('hotelMinPrice').value),
+                maxPrice: parseInt(document.getElementById('hotelMaxPrice').value),
+                roomTypes: document.getElementById('hotelRoomTypes').value,
+                facilities: document.getElementById('hotelFacilities').value,
+                desc: document.getElementById('hotelDesc').value,
+                status: document.getElementById('hotelStatus').value
+            };
+
+            showToast('正在保存...', 'info');
+            await delay(800);
+
+            if (currentEditId) {
+                // 编辑
+                const index = hotels.findIndex(h => h.id === currentEditId);
+                hotels[index] = { ...hotels[index], ...data };
+                showToast('酒店更新成功！', 'success');
+            } else {
+                // 新增
+                const newId = Math.max(...hotels.map(h => h.id)) + 1;
+                hotels.push({ id: newId, ...data });
+                showToast('酒店添加成功！', 'success');
+            }
+
+            closeModal();
+            renderHotels();
+        }
+
+        // 删除酒店
+        function deleteHotel(id) {
+            showConfirm('确定要删除这个酒店吗？', () => {
+                hotels = hotels.filter(h => h.id !== id);
+                renderHotels();
+                showToast('删除成功', 'success');
+            });
+        }
+
+        // 搜索酒店
+        function searchHotels() {
+            const keyword = document.getElementById('searchInput').value;
+            if (keyword) {
+                showToast(`搜索: ${keyword}`, 'info');
+            }
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('hotelModal').classList.remove('active');
+        }
+
+        // 点击背景关闭模态框
+        document.getElementById('hotelModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // 初始化
+        renderHotels();
+    </script>
+</body>
+</html>

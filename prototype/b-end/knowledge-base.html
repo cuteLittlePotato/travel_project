@@ -1,0 +1,1962 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG知识库管理 - 云游坊后台</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <style>
+        body {
+            background: #f5f7fa;
+        }
+
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 240px;
+            background: #001529;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 20px 0;
+        }
+
+        .sidebar-menu li {
+            margin: 0;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 24px;
+            color: rgba(255,255,255,0.65);
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .menu-item:hover {
+            background: rgba(255,255,255,0.08);
+            color: white;
+        }
+
+        .menu-item.active {
+            background: #1890ff;
+            color: white;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .admin-header {
+            background: white;
+            padding: 0 30px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        .admin-header-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .admin-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        /* 工具栏 */
+        .toolbar {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 12px;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        /* 知识库卡片网格 */
+        .kb-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .kb-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .kb-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+
+        .kb-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .kb-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .kb-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .kb-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .kb-desc {
+            font-size: 14px;
+            color: #999;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .kb-stats {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 16px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .kb-stat-item {
+            text-align: center;
+        }
+
+        .kb-stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .kb-stat-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .kb-capacity {
+            width: 100%;
+            height: 6px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+
+        .kb-capacity-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 24px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-modal {
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            line-height: 1;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .form-actions .btn {
+            flex: 1;
+        }
+
+        /* 文档列表表格 */
+        .data-table {
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .data-table thead {
+            background: #f5f5f5;
+        }
+
+        .data-table th {
+            padding: 16px;
+            text-align: left;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .data-table td {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .data-table tbody tr:hover {
+            background: #fafafa;
+        }
+
+        .file-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            background: #667eea;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-success {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .status-processing {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .status-error {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .status-queued {
+            background: #f5f5f5;
+            color: #757575;
+        }
+
+        /* 文档预览模态框 */
+        .preview-tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid #f0f0f0;
+            margin-bottom: 20px;
+        }
+
+        .preview-tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            font-size: 14px;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.3s;
+        }
+
+        .preview-tab:hover {
+            color: #667eea;
+        }
+
+        .preview-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: bold;
+        }
+
+        .preview-pane {
+            display: none;
+        }
+
+        .preview-pane.active {
+            display: block;
+        }
+
+        .preview-doc-meta {
+            display: flex;
+            gap: 24px;
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #666;
+            flex-wrap: wrap;
+        }
+
+        .md-preview {
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 420px;
+            overflow-y: auto;
+            font-family: ui-monospace, "SF Mono", Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            color: #333;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .md-preview .md-h1 {
+            font-size: 16px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .md-preview .md-h2 {
+            font-size: 15px;
+            font-weight: bold;
+            color: #764ba2;
+        }
+
+        .chunk-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 460px;
+            overflow-y: auto;
+        }
+
+        .chunk-item {
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            padding: 14px 16px;
+            background: white;
+            transition: all 0.3s;
+        }
+
+        .chunk-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.15);
+        }
+
+        .chunk-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: #999;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chunk-index {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .chunk-path {
+            background: rgba(102,126,234,0.08);
+            color: #667eea;
+            padding: 2px 10px;
+            border-radius: 10px;
+        }
+
+        .chunk-body {
+            font-size: 13px;
+            line-height: 1.7;
+            color: #555;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .preview-placeholder {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+            background: #fafafa;
+            border-radius: 8px;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* 上传区域 */
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            background: #fafafa;
+            transition: all 0.3s;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e8f0ff;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .upload-text {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .file-name {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .file-size {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb span {
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">云游坊后台</div>
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html" class="menu-item">
+                    <span>📊</span>
+                    <span>数据看板</span>
+                </a></li>
+                <li><a href="attractions.html" class="menu-item">
+                    <span>🏛️</span>
+                    <span>景点管理</span>
+                </a></li>
+                <li><a href="restaurants.html" class="menu-item">
+                    <span>🍽️</span>
+                    <span>餐厅管理</span>
+                </a></li>
+                <li><a href="hotels.html" class="menu-item">
+                    <span>🏨</span>
+                    <span>酒店管理</span>
+                </a></li>
+                <li><a href="knowledge-graph.html" class="menu-item">
+                    <span>🕸️</span>
+                    <span>知识图谱</span>
+                </a></li>
+                <li><a href="knowledge-base.html" class="menu-item active">
+                    <span>📚</span>
+                    <span>RAG知识库</span>
+                </a></li>
+                <li><a href="models.html" class="menu-item">
+                    <span>🧠</span>
+                    <span>模型管理</span>
+                </a></li>
+                <li><a href="users.html" class="menu-item">
+                    <span>👥</span>
+                    <span>用户管理</span>
+                </a></li>
+                <li><a href="settings.html" class="menu-item">
+                    <span>⚙️</span>
+                    <span>系统设置</span>
+                </a></li>
+            </ul>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <header class="admin-header">
+                <div class="admin-header-title">RAG 知识库管理</div>
+                <div class="admin-user">
+                    <span>管理员</span>
+                    <div class="avatar">管</div>
+                </div>
+            </header>
+
+            <div class="content-area" id="mainView">
+                <!-- 知识库列表视图 -->
+                <div id="kbListView">
+                    <!-- 工具栏 -->
+                    <div class="toolbar">
+                        <div class="search-box">
+                            <input type="text" class="search-input" placeholder="搜索知识库..." id="searchInput">
+                        </div>
+                        <button class="btn btn-primary" onclick="openCreateKBModal()">➕ 创建新知识库</button>
+                    </div>
+
+                    <!-- 知识库卡片网格 -->
+                    <div class="kb-grid" id="kbGrid">
+                        <!-- 通过JS渲染 -->
+                    </div>
+                </div>
+
+                <!-- 文档管理视图（初始隐藏） -->
+                <div id="docManageView" style="display: none;">
+                    <!-- 面包屑导航 -->
+                    <div class="breadcrumb">
+                        <a href="#" onclick="showKBList()">知识库列表</a>
+                        <span>›</span>
+                        <span id="currentKBName">知识库名称</span>
+                    </div>
+
+                    <!-- 工具栏 -->
+                    <div class="toolbar">
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <button class="btn btn-primary" onclick="openUploadModal()">📤 上传文档</button>
+                            <button class="btn btn-secondary" onclick="openConfigModal()">⚙️ 配置</button>
+                            <button class="btn btn-outline" onclick="showToast('批量重新索引', 'info')">🔄 批量重新索引</button>
+                        </div>
+                        <button class="btn btn-outline" onclick="showKBList()">← 返回列表</button>
+                    </div>
+
+                    <!-- 当前配置提示 -->
+                    <div style="background: white; padding: 14px 20px; border-radius: 8px; margin-bottom: 20px;
+                                box-shadow: 0 2px 8px rgba(0,0,0,0.08); font-size: 13px; color: #666;
+                                display: flex; gap: 28px; flex-wrap: wrap; align-items: center;">
+                        <span>当前切分参数：<strong id="currentChunkParam">Chunk 1024 字 / 重叠 100 字</strong></span>
+                        <span>向量化模型：<strong id="currentEmbedModel">BGE-M3</strong></span>
+                        <span>重排序模型：<strong id="currentRerankModel">BGE-Reranker-v2</strong></span>
+                    </div>
+
+                    <!-- 文档列表 -->
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" onclick="toggleSelectAll(this)"></th>
+                                <th>文档名称</th>
+                                <th>类型</th>
+                                <th>大小</th>
+                                <th>文本块数</th>
+                                <th>入库切分参数</th>
+                                <th>上传时间</th>
+                                <th>处理状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="docTable">
+                            <!-- 通过JS渲染 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 创建知识库模态框 -->
+    <div class="modal" id="createKBModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>➕ 创建新知识库</span>
+                <span class="close-modal" onclick="closeCreateKBModal()">×</span>
+            </div>
+            <form onsubmit="createKnowledgeBase(event)">
+                <div class="form-group">
+                    <label class="form-label">知识库名称 *</label>
+                    <input type="text" class="form-input" id="kbName" placeholder="例如：景点信息库、历史文化库" required>
+                    <div class="form-hint">为知识库起一个清晰的名称</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">知识库描述</label>
+                    <textarea class="form-textarea" id="kbDesc" placeholder="说明该知识库的用途和内容范围"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">容量配置</label>
+                    <select class="form-select" id="kbCapacity">
+                        <option value="1">1GB</option>
+                        <option value="5" selected>5GB（推荐）</option>
+                        <option value="10">10GB</option>
+                        <option value="50">50GB</option>
+                    </select>
+                    <div class="form-hint">可以后续在设置中调整</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">访问权限</label>
+                    <select class="form-select" id="kbPermission">
+                        <option value="all">所有管理员可编辑</option>
+                        <option value="specific">仅指定管理员可编辑</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeCreateKBModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">创建</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 编辑知识库模态框 -->
+    <div class="modal" id="editKBModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>✏️ 编辑知识库</span>
+                <span class="close-modal" onclick="closeEditKBModal()">×</span>
+            </div>
+            <form onsubmit="updateKnowledgeBase(event)">
+                <div class="form-group">
+                    <label class="form-label">知识库名称 *</label>
+                    <input type="text" class="form-input" id="editKbName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">知识库描述</label>
+                    <textarea class="form-textarea" id="editKbDesc"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">容量配置</label>
+                    <select class="form-select" id="editKbCapacity">
+                        <option value="1">1GB</option>
+                        <option value="5">5GB</option>
+                        <option value="10">10GB</option>
+                        <option value="50">50GB</option>
+                    </select>
+                    <div class="form-hint" id="editCapacityHint"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">访问权限</label>
+                    <select class="form-select" id="editKbPermission">
+                        <option value="all">所有管理员可编辑</option>
+                        <option value="specific">仅指定管理员可编辑</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeEditKBModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 文档预览模态框 -->
+    <div class="modal" id="previewModal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <span id="previewTitle">📄 文档预览</span>
+                <span class="close-modal" onclick="closePreviewModal()">×</span>
+            </div>
+
+            <div class="preview-doc-meta" id="previewMeta"></div>
+
+            <div class="preview-tabs">
+                <button class="preview-tab active" onclick="switchPreviewTab(this, 'original')">原始文档</button>
+                <button class="preview-tab" onclick="switchPreviewTab(this, 'markdown')">转换后 Markdown</button>
+                <button class="preview-tab" onclick="switchPreviewTab(this, 'chunks')">切片预览</button>
+            </div>
+
+            <div class="preview-pane active" id="paneOriginal">
+                <div class="preview-placeholder">
+                    <div style="font-size: 48px; margin-bottom: 12px;">📄</div>
+                    <div>原始文档渲染区域</div>
+                    <div style="font-size: 13px; margin-top: 8px;">
+                        PDF 场景下此处内嵌页面渲染，可按页翻阅；图片场景下直接展示原图
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-pane" id="paneMarkdown">
+                <div class="md-preview" id="mdPreview"></div>
+            </div>
+
+            <div class="preview-pane" id="paneChunks">
+                <div class="chunk-list" id="chunkList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 知识库配置模态框 -->
+    <div class="modal" id="configModal">
+        <div class="modal-content" style="max-width: 720px;">
+            <div class="modal-header">
+                <span id="configModalTitle">⚙️ 知识库配置</span>
+                <span class="close-modal" onclick="closeConfigModal()">×</span>
+            </div>
+            <form onsubmit="saveConfig(event)">
+
+                <!-- 切分参数 -->
+                <div style="font-size: 15px; font-weight: bold; color: #667eea; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
+                    切分参数
+                </div>
+
+                <div class="form-group">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label class="form-label" style="font-size: 13px;">Chunk 大小</label>
+                            <select class="form-select" id="cfgChunkSize">
+                                <option value="512">512 字</option>
+                                <option value="1024" selected>1024 字（推荐）</option>
+                                <option value="2048">2048 字</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 13px;">重叠长度</label>
+                            <select class="form-select" id="cfgOverlapSize">
+                                <option value="0">0 字</option>
+                                <option value="50">50 字</option>
+                                <option value="100" selected>100 字（推荐）</option>
+                                <option value="200">200 字</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="font-size: 13px;">
+                        分割符优先级
+                        <span style="font-weight: normal; color: #999; font-size: 12px;">（勾选启用，按顺序匹配）</span>
+                    </label>
+                    <div id="separatorList" style="border: 1px solid #e8e8e8; border-radius: 8px; padding: 8px;"></div>
+
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <input type="text" class="form-input" id="customSepInput"
+                               placeholder="输入自定义分隔符，如：第X章" style="flex: 1; padding: 9px 12px; font-size: 13px;">
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="addCustomSeparator()">+ 添加</button>
+                    </div>
+                    <div class="form-hint">自定义分隔符按普通字符串匹配，如「第X章」会匹配包含该字样的位置</div>
+                </div>
+
+                <!-- 模型配置 -->
+                <div style="font-size: 15px; font-weight: bold; color: #667eea; margin: 24px 0 16px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;">
+                    模型配置
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="font-size: 13px;">向量化模型</label>
+                    <select class="form-select" id="cfgEmbeddingModel" onchange="onEmbeddingModelChange()">
+                        <option value="1">BGE-M3（平台默认）</option>
+                        <option value="4">text-embedding-3-large</option>
+                    </select>
+                    <div class="form-hint" id="embeddingWarn" style="color: #e6a23c; display: none;">
+                        ⚠️ 更换向量化模型后，该知识库所有文档需重新入库，重建期间暂停检索
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="font-size: 13px;">重排序模型</label>
+                    <select class="form-select" id="cfgRerankModel">
+                        <option value="">不启用</option>
+                        <option value="5" selected>BGE-Reranker-v2（平台默认）</option>
+                    </select>
+                    <div class="form-hint">重排序作用于检索结果，变更后立即生效，无需重建</div>
+                </div>
+
+                <!-- 生效范围说明 -->
+                <div style="padding: 14px 16px; background: #f8f9fa; border-radius: 8px; font-size: 13px; color: #666; line-height: 1.9; margin-top: 20px;">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 6px;">生效范围说明</div>
+                    · <strong>切分参数</strong>变更：仅对后续新上传的文档生效，已入库文档不重新解析<br>
+                    · <strong>向量化模型</strong>变更：需整库重建，重建期间暂停检索<br>
+                    · <strong>重排序模型</strong>变更：立即生效，无需重建
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeConfigModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存配置</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 上传文档模态框 -->
+    <div class="modal" id="uploadModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <span id="uploadModalTitle">📤 上传文档</span>
+                <span class="close-modal" onclick="closeUploadModal()">×</span>
+            </div>
+            <form onsubmit="uploadDocuments(event)">
+                <div class="form-group">
+                    <label class="form-label">选择文档</label>
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📁</div>
+                        <div class="upload-text">拖拽文件到此处或点击上传</div>
+                        <div class="upload-hint">支持 PDF、Word、Excel、TXT、Markdown、图片（OCR）、网页链接</div>
+                        <div class="upload-hint">单文件最大 50MB</div>
+                    </div>
+                    <input type="file" id="fileInput" style="display: none;" multiple
+                           accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.md,.jpg,.jpeg,.png">
+                </div>
+
+                <div class="file-list" id="fileList" style="display: none;">
+                    <label class="form-label">已选择的文件</label>
+                    <!-- 通过JS渲染 -->
+                </div>
+
+                <div style="padding: 14px 16px; background: #f0f4ff; border-radius: 8px; font-size: 13px; color: #555; line-height: 1.7; margin-bottom: 20px;">
+                    ℹ️ 切分参数与向量化模型使用该知识库的当前配置
+                    （Chunk <strong id="uploadChunkHint">1024</strong> 字 / 重叠 <strong id="uploadOverlapHint">100</strong> 字）。
+                    如需调整，请前往 <a href="#" onclick="event.preventDefault(); closeUploadModal(); openConfigModal();" style="color:#667eea;">知识库配置</a>。
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeUploadModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">开始上传</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script>
+        // 模拟知识库数据
+        // 内置分隔符定义
+        const BUILTIN_SEPARATORS = [
+            { key: 'blank',   label: '空行（\\n\\n）',     value: '\n\n', isBuiltin: true },
+            { key: 'newline', label: '单个换行（\\n）',    value: '\n',   isBuiltin: true },
+            { key: 'period',  label: '句号（。）',        value: '。',   isBuiltin: true },
+            { key: 'question',label: '问号（？）',        value: '？',   isBuiltin: true },
+            { key: 'exclaim', label: '感叹号（！）',      value: '！',   isBuiltin: true },
+            { key: 'semicolon', label: '分号（；）',      value: '；',   isBuiltin: true }
+        ];
+
+        // 知识库默认配置
+        function defaultConfig() {
+            return {
+                chunkSize: 1024,
+                overlapSize: 100,
+                separators: [
+                    { ...BUILTIN_SEPARATORS[0], enabled: true },
+                    { ...BUILTIN_SEPARATORS[1], enabled: true },
+                    { ...BUILTIN_SEPARATORS[2], enabled: false },
+                    { ...BUILTIN_SEPARATORS[3], enabled: false },
+                    { ...BUILTIN_SEPARATORS[4], enabled: false },
+                    { ...BUILTIN_SEPARATORS[5], enabled: false }
+                ],
+                embeddingModel: 'BGE-M3',
+                embeddingModelId: '3',
+                rerankModel: 'BGE-Reranker-v2',
+                rerankModelId: '5'
+            };
+        }
+
+        let knowledgeBases = [
+            {
+                id: 1, name: '景点信息库', icon: '🏛️', desc: '景点基础信息、开放时间、门票价格等',
+                docCount: 120, capacity: 5, used: 1.2, status: 'active', permission: 'all',
+                config: defaultConfig()
+            },
+            {
+                id: 2, name: '历史文化知识库', icon: '📖', desc: '历史背景、文化内涵、故事传说等',
+                docCount: 85, capacity: 5, used: 2.3, status: 'active', permission: 'all',
+                config: defaultConfig()
+            },
+            {
+                id: 3, name: '游览攻略库', icon: '🗺️', desc: '游览路线、拍照点、避坑指南等',
+                docCount: 65, capacity: 5, used: 0.8, status: 'active', permission: 'specific',
+                config: defaultConfig()
+            },
+            {
+                id: 4, name: '餐饮美食库', icon: '🍜', desc: '特色美食、餐厅推荐、菜系介绍等',
+                docCount: 38, capacity: 5, used: 0.5, status: 'active', permission: 'all',
+                config: defaultConfig()
+            }
+        ];
+
+        // 模拟文档数据
+        let currentKB = null;
+        let documents = {
+            1: [
+                {
+                    id: 1, name: '故宫基础信息.pdf', type: 'PDF', size: '2.3MB', chunks: 512,
+                    uploadTime: '2024-05-01', status: 'success', pages: 27, indexedChunkSize: 1024, indexedOverlapSize: 100,
+                    markdown: `# 故宫博物院基础信息\n\n## 一、基本信息\n\n故宫博物院位于北京市东城区景山前街4号，是中国明清两代的皇家宫殿。\n\n## 二、开放时间\n\n- 旺季（4月1日-10月31日）：08:30-17:00\n- 淡季（11月1日-3月31日）：08:30-16:30\n- 周一闭馆（法定节假日除外）\n\n## 三、门票价格\n\n| 季节 | 价格 |\n|------|------|\n| 旺季 | 60元 |\n| 淡季 | 40元 |\n\n## 四、参观须知\n\n建议提前在线预约购票，每日限流。`,
+                    chunkSamples: [
+                        { idx: 1, path: '一、基本信息', len: 186, text: '故宫博物院位于北京市东城区景山前街4号，是中国明清两代的皇家宫殿，旧称紫禁城，位于北京中轴线的中心。故宫以三大殿为中心，占地面积约72万平方米，建筑面积约15万平方米，有大小宫殿七十多座，房屋九千余间。' },
+                        { idx: 2, path: '二、开放时间', len: 142, text: '旺季（每年4月1日至10月31日）开放时间为08:30-17:00，16:10停止入场；淡季（每年11月1日至次年3月31日）开放时间为08:30-16:30，15:40停止入场。除法定节假日外，故宫博物院全年实行周一全天闭馆的措施。' },
+                        { idx: 3, path: '三、门票价格', len: 98, text: '旺季门票价格为60元/人，淡季门票价格为40元/人。珍宝馆门票10元/人，钟表馆门票10元/人。学生、老年人、残疾人等特殊群体可凭有效证件享受优惠。门票需提前通过官方渠道实名预约。' },
+                        { idx: 4, path: '四、参观须知', len: 156, text: '建议游客提前1-7天通过"故宫博物院"官方微信小程序或官网预约购票，每日限流8万人次。入院时需携带预约时使用的有效身份证件原件，通过安检后从午门（南门）入院参观，参观结束后由神武门（北门）或东华门离开。' }
+                    ]
+                },
+                {
+                    id: 2, name: '长城游览指南.docx', type: 'Word', size: '1.1MB', chunks: 280,
+                    uploadTime: '2024-05-02', status: 'success', pages: 15, indexedChunkSize: 512, indexedOverlapSize: 50,
+                    markdown: `# 长城游览指南\n\n## 一、长城简介\n\n长城是中国古代的军事防御工程，是世界文化遗产。\n\n## 二、主要游览段落\n\n- 八达岭长城：最著名，交通最便利\n- 慕田峪长城：风景秀丽，游客较少\n- 金山岭长城：摄影爱好者的首选\n\n## 三、游览建议\n\n建议选择清晨或傍晚游览，避开人流高峰。`,
+                    chunkSamples: [
+                        { idx: 1, path: '一、长城简介', len: 172, text: '长城是中国也是世界上修建时间最长、工程量最大的一项古代防御工程。自西周时期开始，延续不断修筑了2000多年，分布于中国北部和中部的广大土地上，总计长度达21196.18千米，被称之为"上下两千多年，纵横十万余里"。' },
+                        { idx: 2, path: '二、主要游览段落', len: 203, text: '八达岭长城位于北京市延庆区，是明长城中保存最好、最具代表性的地段，也是最早向游客开放的长城段落，交通便利，有直达的旅游专线。慕田峪长城位于怀柔区，植被覆盖率高，秋季景色尤佳，游客相对较少，体验更佳。金山岭长城位于河北省滦平县，保留了原始风貌，是摄影爱好者拍摄长城日出日落的首选地。' },
+                        { idx: 3, path: '三、游览建议', len: 138, text: '建议选择清晨开园时或傍晚闭园前的时段游览，可以避开人流高峰并获得更好的光照条件。攀登长城对体力有一定要求，建议穿着舒适的运动鞋，携带充足的饮用水。春秋两季是最佳游览季节，夏季注意防暑，冬季注意防滑。' }
+                    ]
+                },
+                {
+                    id: 3, name: '景点门票价格表.xlsx', type: 'Excel', size: '450KB', chunks: null,
+                    uploadTime: '2024-05-03', status: 'parsing', progress: 35,
+                    markdown: null, chunkSamples: []
+                }
+            ],
+            2: [
+                {
+                    id: 4, name: '明朝历史.pdf', type: 'PDF', size: '3.2MB', chunks: 680,
+                    uploadTime: '2024-05-01', status: 'success', pages: 42, indexedChunkSize: 1024, indexedOverlapSize: 100,
+                    markdown: `# 明朝历史（1368-1644）\n\n## 第一章 明朝建立\n\n朱元璋于1368年建立明朝，定都南京。\n\n## 第二章 永乐迁都\n\n明成祖朱棣于1421年迁都北京，营建紫禁城。\n\n## 第三章 明朝中后期\n\n经历土木堡之变后，明朝由盛转衰。`,
+                    chunkSamples: [
+                        { idx: 1, path: '第一章 明朝建立', len: 214, text: '元朝末年，政治腐败，民不聊生，各地爆发大规模农民起义。朱元璋出身贫寒，参加红巾军后逐渐崭露头角，先后击败陈友谅、张士诚等割据势力，于1368年正月在应天府（今南京）称帝，国号大明，年号洪武，同年攻占元大都，元朝灭亡。' },
+                        { idx: 2, path: '第二章 永乐迁都', len: 198, text: '明成祖朱棣通过靖难之役夺取帝位后，鉴于北京是其发迹之地，且地理位置更利于控制北方边疆，决定将都城从南京迁往北京。自1406年开始营建紫禁城，历时14年，至1420年基本建成，1421年正式迁都。紫禁城成为明清两代24位皇帝的皇宫。' },
+                        { idx: 3, path: '第三章 明朝中后期', len: 176, text: '1449年，明英宗在土木堡之变中被瓦剌俘虏，明朝精锐损失殆尽，国力大损，成为明朝由盛转衰的转折点。此后明朝虽经历弘治中兴、嘉靖新政等短暂复兴，但整体呈现衰落趋势，最终在1644年被李自成农民军推翻。' }
+                    ]
+                },
+                {
+                    id: 5, name: '故宫建筑文化.md', type: 'Markdown', size: '850KB', chunks: null,
+                    uploadTime: '2024-05-04', status: 'queued', queuePos: 2,
+                    markdown: null, chunkSamples: []
+                },
+                {
+                    id: 6, name: '攻略合集.md', type: 'Markdown', size: '120KB', chunks: null,
+                    uploadTime: '2024-05-05', status: 'failed', errorMsg: '文件编码异常，无法识别',
+                    markdown: null, chunkSamples: []
+                }
+            ]
+        };
+
+        let selectedFiles = [];
+
+        // 渲染知识库列表
+        function renderKnowledgeBases() {
+            const grid = document.getElementById('kbGrid');
+            grid.innerHTML = knowledgeBases.map(kb => {
+                const usedPercent = (kb.used / kb.capacity * 100).toFixed(1);
+                return `
+                    <div class="kb-card" onclick="viewKBDocuments(${kb.id})">
+                        <div class="kb-header">
+                            <div class="kb-icon">${kb.icon}</div>
+                            <div class="kb-actions" onclick="event.stopPropagation()">
+                                <button class="btn btn-sm btn-outline" onclick="editKB(${kb.id})">编辑</button>
+                                <button class="btn btn-sm btn-outline" onclick="openConfigModalFor(${kb.id})">配置</button>
+                                <button class="btn btn-sm btn-outline" onclick="deleteKB(${kb.id})">删除</button>
+                            </div>
+                        </div>
+                        <div class="kb-title">${kb.name}</div>
+                        <div class="kb-desc">${kb.desc}</div>
+                        <div style="margin-bottom: 12px;">
+                            <span class="tag ${kb.permission === 'specific' ? '' : 'tag-primary'}" style="font-size: 11px;">
+                                ${kb.permission === 'specific' ? '🔒 仅指定管理员' : '👥 所有管理员'}
+                            </span>
+                        </div>
+                        <div class="kb-stats">
+                            <div class="kb-stat-item">
+                                <div class="kb-stat-label">文档数</div>
+                                <div class="kb-stat-value">${kb.docCount}</div>
+                            </div>
+                            <div class="kb-stat-item">
+                                <div class="kb-stat-label">容量</div>
+                                <div class="kb-stat-value">${kb.used}GB/${kb.capacity}GB</div>
+                            </div>
+                        </div>
+                        <div class="kb-capacity">
+                            <div class="kb-capacity-bar" style="width: ${usedPercent}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 查看知识库文档
+        function viewKBDocuments(kbId) {
+            currentKB = knowledgeBases.find(kb => kb.id === kbId);
+            if (!currentKB.config) currentKB.config = defaultConfig();
+            document.getElementById('currentKBName').textContent = currentKB.name;
+            document.getElementById('kbListView').style.display = 'none';
+            document.getElementById('docManageView').style.display = 'block';
+            updateConfigBar();
+            renderDocuments(kbId);
+        }
+
+        // 显示知识库列表
+        function showKBList() {
+            document.getElementById('kbListView').style.display = 'block';
+            document.getElementById('docManageView').style.display = 'none';
+            currentKB = null;
+        }
+
+        // 渲染文档列表
+        // 状态配置
+        const STATUS_CONFIG = {
+            queued:    { cls: 'status-queued',    label: '排队中',  icon: '🕐' },
+            parsing:   { cls: 'status-processing', label: '解析中',  icon: '⏳' },
+            chunking:  { cls: 'status-processing', label: '切分中',  icon: '⏳' },
+            embedding: { cls: 'status-processing', label: '向量化中', icon: '⏳' },
+            success:   { cls: 'status-success',    label: '已完成',  icon: '✅' },
+            failed:    { cls: 'status-error',      label: '失败',    icon: '❌' }
+        };
+
+        // 渲染入库切分参数单元格
+        function renderChunkParamCell(doc) {
+            // 尚未处理的文件，显示将使用的参数（取当前知识库配置）
+            if (!doc.indexedChunkSize) {
+                const cfg = (currentKB && currentKB.config) || defaultConfig();
+                return `<span style="color:#999;font-size:12px;">${cfg.chunkSize} / ${cfg.overlapSize}<br>（待入库）</span>`;
+            }
+
+            const cfg = (currentKB && currentKB.config) || defaultConfig();
+            const isOutdated = doc.indexedChunkSize !== cfg.chunkSize || doc.indexedOverlapSize !== cfg.overlapSize;
+
+            if (isOutdated) {
+                return `<span style="color:#e6a23c;font-size:12px;" title="该文档使用旧参数入库，与知识库当前配置不一致">
+                            ${doc.indexedChunkSize} / ${doc.indexedOverlapSize} ⚠️<br>
+                            <span style="color:#bbb;">（旧参数）</span>
+                        </span>`;
+            }
+            return `<span style="color:#666;font-size:12px;">${doc.indexedChunkSize} / ${doc.indexedOverlapSize}</span>`;
+        }
+
+        // 渲染状态单元格
+        function renderStatusCell(doc) {
+            const cfg = STATUS_CONFIG[doc.status] || STATUS_CONFIG.queued;
+            let detail = '';
+
+            if (doc.status === 'queued') {
+                detail = doc.queuePos ? `（第 ${doc.queuePos} 位）` : '';
+            } else if (doc.status === 'parsing' || doc.status === 'embedding') {
+                const pct = doc.progress || 0;
+                detail = ` ${pct}%`;
+            } else if (doc.status === 'failed') {
+                detail = `：${doc.errorMsg || '未知错误'}`;
+            }
+
+            const bar = (doc.status === 'parsing' || doc.status === 'embedding')
+                ? `<div style="margin-top:6px;height:4px;background:#f0f0f0;border-radius:2px;overflow:hidden;">
+                     <div style="height:100%;width:${doc.progress || 0}%;background:linear-gradient(90deg,#667eea,#764ba2);transition:width .3s;"></div>
+                   </div>`
+                : '';
+
+            return `
+                <span class="status-badge ${cfg.cls}">${cfg.icon} ${cfg.label}${detail}</span>
+                ${bar}
+            `;
+        }
+
+        // 渲染操作按钮（根据状态变化）
+        function renderActions(doc) {
+            const id = doc.id;
+            switch (doc.status) {
+                case 'queued':
+                case 'parsing':
+                case 'chunking':
+                case 'embedding':
+                    return `<button class="btn btn-sm btn-outline" onclick="cancelDoc(${id})">取消</button>`;
+                case 'failed':
+                    return `
+                        <button class="btn btn-sm btn-outline" onclick="viewDoc(${id})">查看</button>
+                        <button class="btn btn-sm btn-outline" onclick="retryDoc(${id})">重试</button>
+                        <button class="btn btn-sm btn-outline" onclick="deleteDoc(${id})">删除</button>
+                    `;
+                case 'success':
+                    return `
+                        <button class="btn btn-sm btn-outline" onclick="viewDoc(${id})">查看</button>
+                        <button class="btn btn-sm btn-outline" onclick="reindexDoc(${id})">重新索引</button>
+                        <button class="btn btn-sm btn-outline" onclick="deleteDoc(${id})">删除</button>
+                    `;
+                default:
+                    return '';
+            }
+        }
+
+        function renderDocuments(kbId) {
+            const tbody = document.getElementById('docTable');
+            const docs = documents[kbId] || [];
+
+            if (docs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 40px; color: #999;">
+                            暂无文档，点击上方"上传文档"按钮开始添加
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = docs.map(doc => {
+                const isProcessing = ['queued','parsing','chunking','embedding'].includes(doc.status);
+                const chunksText = doc.chunks ? `${doc.chunks} 个文本块` : '—';
+                return `
+                    <tr>
+                        <td><input type="checkbox" value="${doc.id}" ${isProcessing ? 'disabled' : ''}></td>
+                        <td>
+                            <div style="display: flex; align-items: center;">
+                                <span class="file-icon">${doc.type.substring(0,3)}</span>
+                                <div>
+                                    <div style="font-weight: 500;">${doc.name}</div>
+                                    <div style="font-size: 12px; color: #999;">${chunksText}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>${doc.type}</td>
+                        <td>${doc.size}</td>
+                        <td>${doc.chunks || '—'}</td>
+                        <td>${renderChunkParamCell(doc)}</td>
+                        <td>${doc.uploadTime}</td>
+                        <td>${renderStatusCell(doc)}</td>
+                        <td>
+                            <div class="action-btns">
+                                ${renderActions(doc)}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 打开创建知识库模态框
+        function openCreateKBModal() {
+            document.getElementById('createKBModal').classList.add('active');
+        }
+
+        function closeCreateKBModal() {
+            document.getElementById('createKBModal').classList.remove('active');
+            document.querySelector('#createKBModal form').reset();
+        }
+
+        // 创建知识库
+        async function createKnowledgeBase(event) {
+            event.preventDefault();
+
+            const kb = {
+                id: knowledgeBases.length + 1,
+                name: document.getElementById('kbName').value,
+                icon: '📚',
+                desc: document.getElementById('kbDesc').value,
+                docCount: 0,
+                capacity: parseInt(document.getElementById('kbCapacity').value),
+                used: 0,
+                status: 'active',
+                permission: document.getElementById('kbPermission').value
+            };
+
+            showToast('正在创建知识库...', 'info');
+            await delay(800);
+
+            knowledgeBases.push(kb);
+            renderKnowledgeBases();
+            closeCreateKBModal();
+            showToast('知识库创建成功！', 'success');
+        }
+
+        // ===== 知识库配置 =====
+        let configKB = null;          // 当前正在配置的知识库
+        let configDraft = null;       // 配置草稿
+        let originalEmbeddingId = null;
+
+        // 从列表卡片进入配置
+        function openConfigModalFor(kbId) {
+            const kb = knowledgeBases.find(k => k.id === kbId);
+            if (!kb) return;
+            configKB = kb;
+            openConfigModal();
+        }
+
+        // 从文档管理页进入配置
+        function openConfigModal() {
+            const kb = configKB || currentKB;
+            if (!kb) {
+                showToast('请先选择知识库', 'error');
+                return;
+            }
+            configKB = kb;
+
+            // 深拷贝配置作为草稿
+            configDraft = JSON.parse(JSON.stringify(kb.config || defaultConfig()));
+            originalEmbeddingId = configDraft.embeddingModelId;
+
+            document.getElementById('configModalTitle').textContent = `⚙️ ${kb.name} - 配置`;
+            document.getElementById('cfgChunkSize').value = configDraft.chunkSize;
+            document.getElementById('cfgOverlapSize').value = configDraft.overlapSize;
+            document.getElementById('cfgEmbeddingModel').value = configDraft.embeddingModelId;
+            document.getElementById('cfgRerankModel').value = configDraft.rerankModelId || '';
+            document.getElementById('embeddingWarn').style.display = 'none';
+            document.getElementById('customSepInput').value = '';
+
+            renderSeparators();
+            document.getElementById('configModal').classList.add('active');
+        }
+
+        function closeConfigModal() {
+            document.getElementById('configModal').classList.remove('active');
+            configKB = null;
+            configDraft = null;
+            originalEmbeddingId = null;
+        }
+
+        // 渲染分隔符列表
+        function renderSeparators() {
+            const list = document.getElementById('separatorList');
+            list.innerHTML = configDraft.separators.map((sep, i) => `
+                <div style="display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+                            border-radius: 6px; ${i % 2 === 0 ? 'background:#fafafa;' : ''}">
+                    <input type="checkbox" ${sep.enabled ? 'checked' : ''}
+                           onchange="toggleSeparator(${i}, this.checked)" style="width:auto;">
+                    <span style="font-size: 13px; color: #333; flex: 1;">
+                        ${i + 1}. ${sep.label}
+                    </span>
+                    <span class="tag" style="font-size: 11px; ${sep.isBuiltin ? 'background:#f0f0f0;color:#666;' : 'background:rgba(102,126,234,0.1);color:#667eea;'}">
+                        ${sep.isBuiltin ? '内置' : '自定义'}
+                    </span>
+                    <button type="button" class="btn btn-sm btn-outline" style="padding:2px 8px;font-size:12px;"
+                            onclick="moveSeparator(${i}, -1)" ${i === 0 ? 'disabled' : ''}>↑</button>
+                    <button type="button" class="btn btn-sm btn-outline" style="padding:2px 8px;font-size:12px;"
+                            onclick="moveSeparator(${i}, 1)" ${i === configDraft.separators.length - 1 ? 'disabled' : ''}>↓</button>
+                    ${sep.isBuiltin ? '' : `
+                    <button type="button" class="btn btn-sm btn-outline" style="padding:2px 8px;font-size:12px;"
+                            onclick="removeSeparator(${i})">×</button>`}
+                </div>
+            `).join('');
+        }
+
+        function toggleSeparator(index, checked) {
+            configDraft.separators[index].enabled = checked;
+        }
+
+        function moveSeparator(index, direction) {
+            const target = index + direction;
+            if (target < 0 || target >= configDraft.separators.length) return;
+            const arr = configDraft.separators;
+            [arr[index], arr[target]] = [arr[target], arr[index]];
+            renderSeparators();
+        }
+
+        function removeSeparator(index) {
+            configDraft.separators.splice(index, 1);
+            renderSeparators();
+        }
+
+        function addCustomSeparator() {
+            const input = document.getElementById('customSepInput');
+            const value = input.value.trim();
+            if (!value) {
+                showToast('请输入分隔符内容', 'error');
+                return;
+            }
+            // 去重
+            if (configDraft.separators.some(s => s.value === value)) {
+                showToast('该分隔符已存在', 'error');
+                return;
+            }
+            configDraft.separators.push({
+                key: 'custom_' + Date.now(),
+                label: value,
+                value: value,
+                enabled: true,
+                isBuiltin: false
+            });
+            input.value = '';
+            renderSeparators();
+            showToast('已添加自定义分隔符', 'success');
+        }
+
+        // 向量化模型变更时显示警告
+        function onEmbeddingModelChange() {
+            const newId = document.getElementById('cfgEmbeddingModel').value;
+            const warn = document.getElementById('embeddingWarn');
+            warn.style.display = (newId !== originalEmbeddingId) ? 'block' : 'none';
+        }
+
+        // 保存配置
+        async function saveConfig(event) {
+            event.preventDefault();
+            if (!configKB || !configDraft) return;
+
+            const chunkSize = parseInt(document.getElementById('cfgChunkSize').value);
+            const overlapSize = parseInt(document.getElementById('cfgOverlapSize').value);
+            const newEmbeddingId = document.getElementById('cfgEmbeddingModel').value;
+            const newEmbeddingName = document.getElementById('cfgEmbeddingModel').selectedOptions[0].text.replace('（平台默认）', '');
+            const newRerankId = document.getElementById('cfgRerankModel').value;
+            const newRerankName = newRerankId
+                ? document.getElementById('cfgRerankModel').selectedOptions[0].text.replace('（平台默认）', '')
+                : '不启用';
+
+            const embeddingChanged = newEmbeddingId !== originalEmbeddingId;
+            const chunkChanged = chunkSize !== configKB.config.chunkSize || overlapSize !== configKB.config.overlapSize;
+
+            // 检查启用的分隔符
+            const enabledSeps = configDraft.separators.filter(s => s.enabled);
+            if (enabledSeps.length === 0) {
+                showToast('请至少启用一个分隔符', 'error');
+                return;
+            }
+
+            const doSave = async () => {
+                showToast('正在保存配置...', 'info');
+                await delay(600);
+
+                configKB.config = {
+                    chunkSize: chunkSize,
+                    overlapSize: overlapSize,
+                    separators: configDraft.separators,
+                    embeddingModel: newEmbeddingName,
+                    embeddingModelId: newEmbeddingId,
+                    rerankModel: newRerankName,
+                    rerankModelId: newRerankId
+                };
+
+                // 若正在查看该知识库的文档列表，同步刷新顶部配置条
+                if (currentKB && currentKB.id === configKB.id) {
+                    currentKB.config = configKB.config;
+                    updateConfigBar();
+                }
+
+                closeConfigModal();
+                renderKnowledgeBases();
+
+                // 差异化提示
+                const msgs = [];
+                if (chunkChanged) msgs.push('切分参数已更新，仅对后续上传的文档生效');
+                if (embeddingChanged) msgs.push('向量化模型已更换，请前往文档列表执行重建');
+                showToast(msgs.length ? msgs.join('；') : '配置已保存', 'success');
+
+                // 向量化模型变更 → 标记待重建
+                if (embeddingChanged) {
+                    setTimeout(() => {
+                        showConfirm(
+                            `向量化模型已更换为「${newEmbeddingName}」，` +
+                            `该知识库的 ${configKB.docCount} 个文档需重新入库。是否立即标记为待重建？`,
+                            () => {
+                                configKB.pendingRebuild = true;
+                                renderKnowledgeBases();
+                                if (currentKB && currentKB.id === configKB.id) updateConfigBar();
+                                showToast('已标记为待重建，重建期间暂停检索', 'info');
+                            }
+                        );
+                    }, 500);
+                }
+            };
+
+            if (embeddingChanged) {
+                showConfirm(
+                    `更换向量化模型后，该知识库的 ${configKB.docCount} 个文档需重新入库，` +
+                    `重建期间该知识库将暂停检索。是否继续？`,
+                    doSave
+                );
+            } else {
+                await doSave();
+            }
+        }
+
+        // 刷新文档管理页顶部的配置提示条
+        function updateConfigBar() {
+            if (!currentKB || !currentKB.config) return;
+            const cfg = currentKB.config;
+            const chunkEl = document.getElementById('currentChunkParam');
+            const embedEl = document.getElementById('currentEmbedModel');
+            const rerankEl = document.getElementById('currentRerankModel');
+
+            if (chunkEl) chunkEl.textContent = `Chunk ${cfg.chunkSize} 字 / 重叠 ${cfg.overlapSize} 字`;
+            if (embedEl) embedEl.textContent = cfg.embeddingModel;
+            if (rerankEl) rerankEl.textContent = cfg.rerankModel || '不启用';
+        }
+
+        // 打开上传模态框
+        function openUploadModal() {
+            if (!currentKB) {
+                showToast('请先选择知识库', 'error');
+                return;
+            }
+            // 上传标题带上知识库名
+            document.getElementById('uploadModalTitle').textContent = `📤 上传文档到「${currentKB.name}」`;
+
+            // 显示当前配置提示
+            const cfg = currentKB.config || defaultConfig();
+            document.getElementById('uploadChunkHint').textContent = cfg.chunkSize;
+            document.getElementById('uploadOverlapHint').textContent = cfg.overlapSize;
+
+            document.getElementById('uploadModal').classList.add('active');
+            setupUploadArea();
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').classList.remove('active');
+            selectedFiles = [];
+            document.getElementById('fileList').style.display = 'none';
+        }
+
+        // 设置上传区域
+        function setupUploadArea() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+
+            uploadArea.onclick = () => fileInput.click();
+
+            fileInput.onchange = (e) => {
+                selectedFiles = Array.from(e.target.files);
+                displaySelectedFiles();
+            };
+
+            uploadArea.ondragover = (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            };
+
+            uploadArea.ondragleave = () => {
+                uploadArea.classList.remove('dragover');
+            };
+
+            uploadArea.ondrop = (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                selectedFiles = Array.from(e.dataTransfer.files);
+                displaySelectedFiles();
+            };
+        }
+
+        // 显示已选择的文件
+        function displaySelectedFiles() {
+            const fileList = document.getElementById('fileList');
+            if (selectedFiles.length === 0) {
+                fileList.style.display = 'none';
+                return;
+            }
+
+            fileList.style.display = 'block';
+            fileList.innerHTML = `
+                <label class="form-label">已选择 ${selectedFiles.length} 个文件</label>
+                ${selectedFiles.map((file, index) => `
+                    <div class="file-item">
+                        <div class="file-info">
+                            <span class="file-icon">${getFileIcon(file.name)}</span>
+                            <div>
+                                <div class="file-name">${file.name}</div>
+                                <div class="file-size">${formatFileSize(file.size)}</div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="removeFile(${index})">移除</button>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const icons = {
+                'pdf': 'PDF',
+                'doc': 'DOC',
+                'docx': 'DOC',
+                'xls': 'XLS',
+                'xlsx': 'XLS',
+                'txt': 'TXT',
+                'md': 'MD'
+            };
+            return icons[ext] || 'FILE';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            displaySelectedFiles();
+        }
+
+        // 上传文档
+        async function uploadDocuments(event) {
+            event.preventDefault();
+
+            if (selectedFiles.length === 0) {
+                showToast('请先选择文件', 'error');
+                return;
+            }
+
+            // 文件大小校验（50MB）
+            const tooLarge = selectedFiles.filter(f => f.size > 50 * 1024 * 1024);
+            if (tooLarge.length > 0) {
+                showToast(`以下文件超过 50MB 限制：${tooLarge.map(f => f.name).join('、')}`, 'error');
+                return;
+            }
+
+            showToast('正在上传文件...', 'info');
+            await delay(800);
+
+            if (!documents[currentKB.id]) {
+                documents[currentKB.id] = [];
+            }
+
+            const newDocIds = [];
+
+            // 文件入队，状态为排队中
+            selectedFiles.forEach((file, i) => {
+                const newDoc = {
+                    id: Date.now() + i,
+                    name: file.name,
+                    type: getFileIcon(file.name),
+                    size: formatFileSize(file.size),
+                    chunks: null,
+                    uploadTime: new Date().toISOString().split('T')[0],
+                    status: 'queued',
+                    queuePos: i + 1,
+                    progress: 0,
+                    markdown: null,
+                    chunkSamples: []
+                };
+                documents[currentKB.id].push(newDoc);
+                newDocIds.push(newDoc.id);
+            });
+
+            // 更新知识库统计
+            const kb = knowledgeBases.find(k => k.id === currentKB.id);
+            kb.docCount = documents[currentKB.id].length;
+            kb.used += selectedFiles.reduce((sum, f) => sum + f.size / (1024 * 1024 * 1024), 0);
+
+            renderDocuments(currentKB.id);
+            renderKnowledgeBases();
+            closeUploadModal();
+            showToast(`${selectedFiles.length} 个文件已加入处理队列`, 'success');
+
+            // 依次模拟处理
+            newDocIds.forEach((id, i) => {
+                setTimeout(() => simulateProcessing(id), 1200 + i * 800);
+            });
+        }
+
+        // 其他操作
+        let editingKBId = null;
+
+        function editKB(id) {
+            const kb = knowledgeBases.find(k => k.id === id);
+            if (!kb) return;
+
+            editingKBId = id;
+            document.getElementById('editKbName').value = kb.name;
+            document.getElementById('editKbDesc').value = kb.desc || '';
+            document.getElementById('editKbCapacity').value = kb.capacity;
+            document.getElementById('editKbPermission').value = kb.permission || 'all';
+            document.getElementById('editCapacityHint').textContent =
+                `当前已使用 ${kb.used}GB，不能调整为低于已用容量的值`;
+
+            document.getElementById('editKBModal').classList.add('active');
+        }
+
+        function closeEditKBModal() {
+            document.getElementById('editKBModal').classList.remove('active');
+            editingKBId = null;
+        }
+
+        async function updateKnowledgeBase(event) {
+            event.preventDefault();
+
+            const kb = knowledgeBases.find(k => k.id === editingKBId);
+            if (!kb) return;
+
+            const newCapacity = parseInt(document.getElementById('editKbCapacity').value);
+
+            // 容量不能小于已使用量
+            if (newCapacity < kb.used) {
+                showToast(`容量不能小于已使用的 ${kb.used}GB`, 'error');
+                return;
+            }
+
+            showToast('正在保存...', 'info');
+            await delay(600);
+
+            kb.name = document.getElementById('editKbName').value;
+            kb.desc = document.getElementById('editKbDesc').value;
+            kb.capacity = newCapacity;
+            kb.permission = document.getElementById('editKbPermission').value;
+
+            renderKnowledgeBases();
+            closeEditKBModal();
+            showToast('知识库更新成功！', 'success');
+        }
+
+        function deleteKB(id) {
+            showConfirm('确定要删除这个知识库吗？删除后所有文档和向量数据将无法恢复。', () => {
+                knowledgeBases = knowledgeBases.filter(kb => kb.id !== id);
+                renderKnowledgeBases();
+                showToast('知识库已删除', 'success');
+            });
+        }
+
+        // ===== 文档预览 =====
+        let previewDocObj = null;
+
+        function findDoc(id) {
+            const list = documents[currentKB.id] || [];
+            return list.find(d => d.id === id);
+        }
+
+        function viewDoc(id) {
+            const doc = findDoc(id);
+            if (!doc) return;
+
+            previewDocObj = doc;
+            document.getElementById('previewTitle').textContent = `📄 ${doc.name}`;
+
+            const statusCfg = STATUS_CONFIG[doc.status] || STATUS_CONFIG.queued;
+            document.getElementById('previewMeta').innerHTML = `
+                <span>状态：<strong>${statusCfg.icon} ${statusCfg.label}</strong></span>
+                <span>类型：${doc.type}</span>
+                <span>大小：${doc.size}</span>
+                ${doc.pages ? `<span>页数：${doc.pages} 页</span>` : ''}
+                <span>文本块：${doc.chunks || '—'}</span>
+                <span>上传时间：${doc.uploadTime}</span>
+            `;
+
+            // Markdown 标签页
+            const mdPane = document.getElementById('mdPreview');
+            if (doc.markdown) {
+                mdPane.innerHTML = doc.markdown
+                    .split('\n')
+                    .map(line => {
+                        if (line.startsWith('### ')) return `<div class="md-h2">${line.slice(4)}</div>`;
+                        if (line.startsWith('## ')) return `<div class="md-h2">${line.slice(3)}</div>`;
+                        if (line.startsWith('# ')) return `<div class="md-h1">${line.slice(2)}</div>`;
+                        return `<div>${line || '&nbsp;'}</div>`;
+                    })
+                    .join('');
+            } else {
+                mdPane.innerHTML = doc.status === 'failed'
+                    ? `<div style="text-align:center;color:#d32f2f;padding:40px;">解析失败，无法生成 Markdown<br><span style="font-size:13px;color:#999;">原因：${doc.errorMsg || '未知错误'}</span></div>`
+                    : `<div style="text-align:center;color:#999;padding:40px;">文档尚未完成解析，暂无 Markdown 内容</div>`;
+            }
+
+            // 切片标签页
+            const chunkPane = document.getElementById('chunkList');
+            const samples = doc.chunkSamples || [];
+            if (samples.length > 0) {
+                chunkPane.innerHTML = samples.map(c => `
+                    <div class="chunk-item">
+                        <div class="chunk-head">
+                            <span class="chunk-index">切片 #${c.idx} / ${doc.chunks}</span>
+                            <span class="chunk-path">${c.path}</span>
+                            <span>${c.len} 字符</span>
+                        </div>
+                        <div class="chunk-body">${c.text}</div>
+                    </div>
+                `).join('');
+            } else {
+                chunkPane.innerHTML = doc.status === 'failed'
+                    ? `<div class="preview-placeholder">切片生成失败</div>`
+                    : `<div class="preview-placeholder">文档尚未完成切分，暂无切片数据</div>`;
+            }
+
+            // 重置到第一个标签
+            document.querySelectorAll('.preview-tab').forEach((t, i) => t.classList.toggle('active', i === 0));
+            ['paneOriginal', 'paneMarkdown', 'paneChunks'].forEach((id, i) => {
+                document.getElementById(id).classList.toggle('active', i === 0);
+            });
+
+            document.getElementById('previewModal').classList.add('active');
+        }
+
+        function switchPreviewTab(btn, name) {
+            document.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+
+            const panes = { original: 'paneOriginal', markdown: 'paneMarkdown', chunks: 'paneChunks' };
+            Object.values(panes).forEach(id => document.getElementById(id).classList.remove('active'));
+            document.getElementById(panes[name]).classList.add('active');
+        }
+
+        function closePreviewModal() {
+            document.getElementById('previewModal').classList.remove('active');
+            previewDocObj = null;
+        }
+
+        // ===== 其他操作 =====
+        async function reindexDoc(id) {
+            const doc = findDoc(id);
+            if (!doc) return;
+
+            showConfirm('重新索引将重新解析文档并重建向量，是否继续？', async () => {
+                doc.status = 'queued';
+                doc.queuePos = 1;
+                doc.progress = 0;
+                doc.chunks = null;
+                renderDocuments(currentKB.id);
+                showToast('已加入重新索引队列', 'info');
+
+                await delay(1200);
+                simulateProcessing(id);
+            });
+        }
+
+        // 模拟处理进度推进
+        function simulateProcessing(id) {
+            const doc = findDoc(id);
+            if (!doc) return;
+            doc.status = 'parsing';
+            doc.progress = 0;
+            renderDocuments(currentKB.id);
+
+            const timer = setInterval(() => {
+                if (!doc || doc.status !== 'parsing') {
+                    clearInterval(timer);
+                    return;
+                }
+                doc.progress = Math.min(100, (doc.progress || 0) + 15);
+                if (doc.progress >= 100) {
+                    clearInterval(timer);
+                    doc.status = 'success';
+                    doc.progress = 100;
+                    doc.chunks = Math.floor(Math.random() * 400) + 100;
+                    doc.pages = doc.pages || 20;
+                    // 记录入库时使用的切分参数（用于后续识别旧参数）
+                    const cfg = (currentKB && currentKB.config) || defaultConfig();
+                    doc.indexedChunkSize = cfg.chunkSize;
+                    doc.indexedOverlapSize = cfg.overlapSize;
+                    showToast(`${doc.name} 处理完成`, 'success');
+                }
+                renderDocuments(currentKB.id);
+            }, 600);
+        }
+
+        function cancelDoc(id) {
+            showConfirm('确定要取消处理这个文档吗？', () => {
+                documents[currentKB.id] = documents[currentKB.id].filter(d => d.id !== id);
+                renderDocuments(currentKB.id);
+                showToast('已取消并移除该文档', 'success');
+            });
+        }
+
+        function retryDoc(id) {
+            const doc = findDoc(id);
+            if (!doc) return;
+            doc.status = 'queued';
+            doc.queuePos = 1;
+            doc.errorMsg = null;
+            renderDocuments(currentKB.id);
+            showToast('已重新加入处理队列', 'info');
+            setTimeout(() => simulateProcessing(id), 1200);
+        }
+
+        function deleteDoc(id) {
+            showConfirm('确定要删除这个文档吗？', () => {
+                documents[currentKB.id] = documents[currentKB.id].filter(doc => doc.id !== id);
+                renderDocuments(currentKB.id);
+                showToast('文档已删除', 'success');
+            });
+        }
+
+        function toggleSelectAll(checkbox) {
+            const checkboxes = document.querySelectorAll('#docTable input[type="checkbox"]:not([disabled])');
+            checkboxes.forEach(cb => cb.checked = checkbox.checked);
+        }
+
+        // 点击背景关闭模态框
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        });
+
+        // 初始化
+        renderKnowledgeBases();
+    </script>
+</body>
+</html>

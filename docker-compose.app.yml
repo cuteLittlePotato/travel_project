@@ -1,0 +1,145 @@
+# ============================================
+# 云游坊 - 业务应用编排（叠加在 /opt/travel/deploy/compose.yaml 之上）
+#
+# 目录约定（测试服务器）：
+#   /opt/travel/deploy/      基础设施编排 + 本文件 + .env.app
+#   /opt/travel/app/         本仓库源码（backend / frontend / pyproject.toml）
+#
+# 用法：
+#   cd /opt/travel/deploy
+#   cp /opt/travel/app/.env.app.example .env.app   # 填写真实值
+#   docker compose -f compose.yaml -f compose.app.yaml up -d --build
+# ============================================
+name: travel
+
+services:
+
+  travel-api:
+    build:
+      context: /opt/travel/app
+      dockerfile: backend/Dockerfile
+    image: travel-backend:dev
+    container_name: travel-api
+    restart: unless-stopped
+    env_file: .env.app
+    environment:
+      POSTGRES_HOST: travel-postgres
+      REDIS_HOST: travel-redis
+      NEO4J_URI: bolt://travel-neo4j:7687
+      MILVUS_HOST: travel-milvus
+      ES_HOSTS: http://travel-elasticsearch:9200
+      MINIO_ENDPOINT: travel-minio:9000
+      RABBITMQ_HOST: travel-rabbitmq
+      LITELLM_BASE_URL: http://travel-litellm:4000
+      LANGFUSE_HOST: http://travel-langfuse:3000
+    ports:
+      - "${API_EXPOSE_PORT:-18000}:8000"
+    networks: [travel_net]
+    depends_on:
+      travel-postgres:
+        condition: service_healthy
+      travel-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  travel-celery-worker:
+    image: travel-backend:dev
+    container_name: travel-celery-worker
+    restart: unless-stopped
+    command: ["celery", "-A", "app.tasks.celery_app.celery_app", "worker", "-l", "info", "-Q", "default"]
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.tasks.celery_app.celery_app inspect ping -d celery@$$HOSTNAME || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    env_file: .env.app
+    environment:
+      POSTGRES_HOST: travel-postgres
+      REDIS_HOST: travel-redis
+      NEO4J_URI: bolt://travel-neo4j:7687
+      MILVUS_HOST: travel-milvus
+      ES_HOSTS: http://travel-elasticsearch:9200
+      MINIO_ENDPOINT: travel-minio:9000
+      RABBITMQ_HOST: travel-rabbitmq
+      LITELLM_BASE_URL: http://travel-litellm:4000
+      LANGFUSE_HOST: http://travel-langfuse:3000
+    networks: [travel_net]
+    depends_on:
+      travel-api:
+        condition: service_started
+      travel-rabbitmq:
+        condition: service_healthy
+      travel-redis:
+        condition: service_healthy
+
+  travel-celery-beat:
+    image: travel-backend:dev
+    container_name: travel-celery-beat
+    restart: unless-stopped
+    command: ["celery", "-A", "app.tasks.celery_app.celery_app", "beat", "-l", "info"]
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /app/backend/celerybeat-schedule || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    env_file: .env.app
+    environment:
+      POSTGRES_HOST: travel-postgres
+      REDIS_HOST: travel-redis
+      RABBITMQ_HOST: travel-rabbitmq
+    networks: [travel_net]
+    depends_on:
+      travel-api:
+        condition: service_started
+      travel-rabbitmq:
+        condition: service_healthy
+      travel-redis:
+        condition: service_healthy
+
+  travel-frontend:
+    build:
+      context: /opt/travel/app/frontend/c-end
+      dockerfile: Dockerfile
+      args:
+        API_INTERNAL_BASE_URL: http://travel-api:8000
+    container_name: travel-frontend
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_BASE_URL: http://travel-api:8000
+      NEXT_PUBLIC_API_BASE_URL: ""
+    ports:
+      - "${FRONTEND_EXPOSE_PORT:-13001}:3000"
+    networks: [travel_net]
+    depends_on:
+      travel-api:
+        condition: service_started
+
+  travel-b-end:
+    build:
+      context: /opt/travel/app/frontend/b-end
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1/admin
+        VITE_PUBLIC_PATH: /admin/
+    image: travel-b-end:dev
+    container_name: travel-b-end
+    restart: unless-stopped
+    # 构建为静态文件容器，产物由 Nginx 通过共享卷读取
+    volumes:
+      - b_end_dist:/usr/share/nginx/admin:ro
+    networks: [travel_net]
+
+volumes:
+  b_end_dist:
+
+networks:
+  travel_net:
+    external: true
+    name: travel_travel_net

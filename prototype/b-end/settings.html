@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统设置 - 云游坊后台</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <style>
+        body {
+            background: #f5f7fa;
+        }
+
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 240px;
+            background: #001529;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 20px 0;
+        }
+
+        .sidebar-menu li {
+            margin: 0;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 24px;
+            color: rgba(255,255,255,0.65);
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .menu-item:hover {
+            background: rgba(255,255,255,0.08);
+            color: white;
+        }
+
+        .menu-item.active {
+            background: #1890ff;
+            color: white;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .admin-header {
+            background: white;
+            padding: 0 30px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        .admin-header-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .admin-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .settings-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .settings-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .settings-card-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-label {
+            flex: 1;
+        }
+
+        .settings-label-title {
+            font-size: 15px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .settings-label-desc {
+            font-size: 13px;
+            color: #999;
+        }
+
+        .settings-control {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        /* 开关按钮 */
+        .switch {
+            position: relative;
+            width: 48px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 24px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .switch.active {
+            background: #52c41a;
+        }
+
+        .switch::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            top: 2px;
+            left: 2px;
+            transition: left 0.3s;
+        }
+
+        .switch.active::after {
+            left: 26px;
+        }
+
+        .form-input, .form-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        .admin-list {
+            margin-top: 16px;
+        }
+
+        .admin-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .admin-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .role-badge {
+            padding: 4px 12px;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">云游坊后台</div>
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html" class="menu-item">
+                    <span>📊</span>
+                    <span>数据看板</span>
+                </a></li>
+                <li><a href="attractions.html" class="menu-item">
+                    <span>🏛️</span>
+                    <span>景点管理</span>
+                </a></li>
+                <li><a href="restaurants.html" class="menu-item">
+                    <span>🍽️</span>
+                    <span>餐厅管理</span>
+                </a></li>
+                <li><a href="hotels.html" class="menu-item">
+                    <span>🏨</span>
+                    <span>酒店管理</span>
+                </a></li>
+                <li><a href="knowledge-graph.html" class="menu-item">
+                    <span>🕸️</span>
+                    <span>知识图谱</span>
+                </a></li>
+                <li><a href="knowledge-base.html" class="menu-item">
+                    <span>📚</span>
+                    <span>RAG知识库</span>
+                </a></li>
+                <li><a href="models.html" class="menu-item">
+                    <span>🧠</span>
+                    <span>模型管理</span>
+                </a></li>
+                <li><a href="users.html" class="menu-item">
+                    <span>👥</span>
+                    <span>用户管理</span>
+                </a></li>
+                <li><a href="settings.html" class="menu-item active">
+                    <span>⚙️</span>
+                    <span>系统设置</span>
+                </a></li>
+            </ul>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <header class="admin-header">
+                <div class="admin-header-title">系统设置</div>
+                <div class="admin-user">
+                    <span>管理员</span>
+                    <div class="avatar">管</div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <div class="settings-grid">
+                    <!-- 基础设置 -->
+                    <div class="settings-card">
+                        <div class="settings-card-title">
+                            <span>🔧</span>
+                            <span>基础设置</span>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <div class="settings-label-title">网站名称</div>
+                                <div class="settings-label-desc">显示在浏览器标签和页面标题</div>
+                            </div>
+                            <div class="settings-control">
+                                <input type="text" class="form-input" value="云游坊" id="siteName">
+                                <button class="btn btn-sm btn-primary" onclick="saveSiteName()">保存</button>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <div class="settings-label-title">网站描述</div>
+                                <div class="settings-label-desc">用于SEO优化</div>
+                            </div>
+                            <div class="settings-control">
+                                <input type="text" class="form-input" value="智能旅游规划平台" id="siteDesc">
+                                <button class="btn btn-sm btn-primary" onclick="saveSiteDesc()">保存</button>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <div class="settings-label-title">用户注册</div>
+                                <div class="settings-label-desc">是否允许新用户注册</div>
+                            </div>
+                            <div class="settings-control">
+                                <div class="switch active" onclick="toggleSwitch(this)"></div>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <div class="settings-label-title">内容审核</div>
+                                <div class="settings-label-desc">用户发布内容需要审核</div>
+                            </div>
+                            <div class="settings-control">
+                                <div class="switch active" onclick="toggleSwitch(this)"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI设置 -->
+                    <div class="settings-card">
+                        <div class="settings-card-title">
+                            <span>🤖</span>
+                            <span>AI 对话设置</span>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <div class="settings-label-title">AI模型</div>
+                                <div class="settings-label-desc">选择使用的大语言模型</div>
+                            </div>
+                            <div class="settings-control">
+                                <select class="form-select" id="aiModel">
+                                    <option value="gpt-4">GPT-4</option>
+                                    <option value="gpt-3.5">GPT-3.5 Turbo</option>
+                                    <option value="claude">Claude</option>
+                                    <option value="local">本地模型</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <div class="settings-label-title">对话历史保存</div>
+                                <div class="settings-label-desc">保存用户对话记录</div>
+                            </div>
+                            <div class="settings-control">
+                                <div class="switch active" onclick="toggleSwitch(this)"></div>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <div class="settings-label-title">每日对话限制</div>
+                                <div class="settings-label-desc">单用户每天最多对话次数</div>
+                            </div>
+                            <div class="settings-control">
+                                <input type="number" class="form-input" value="50" id="chatLimit" style="width: 100px;">
+                                <button class="btn btn-sm btn-primary" onclick="saveChatLimit()">保存</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 管理员管理 -->
+                    <div class="settings-card">
+                        <div class="settings-card-title">
+                            <span>👨‍💼</span>
+                            <span>管理员管理</span>
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
+                            <button class="btn btn-primary" onclick="showToast('添加管理员功能', 'info')">+ 添加管理员</button>
+                        </div>
+
+                        <div class="admin-list" id="adminList">
+                            <!-- 通过JS渲染 -->
+                        </div>
+                    </div>
+
+                    <!-- 数据备份 -->
+                    <div class="settings-card">
+                        <div class="settings-card-title">
+                            <span>💾</span>
+                            <span>数据备份</span>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <div class="settings-label-title">自动备份</div>
+                                <div class="settings-label-desc">每日自动备份数据库</div>
+                            </div>
+                            <div class="settings-control">
+                                <div class="switch active" onclick="toggleSwitch(this)"></div>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <div class="settings-label-title">备份时间</div>
+                                <div class="settings-label-desc">每日备份的时间点</div>
+                            </div>
+                            <div class="settings-control">
+                                <input type="time" class="form-input" value="02:00" id="backupTime">
+                                <button class="btn btn-sm btn-primary" onclick="saveBackupTime()">保存</button>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <div class="settings-label-title">手动备份</div>
+                                <div class="settings-label-desc">立即创建数据备份</div>
+                            </div>
+                            <div class="settings-control">
+                                <button class="btn btn-secondary" onclick="backupNow()">立即备份</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script>
+        // 模拟管理员数据
+        const admins = [
+            { id: 1, name: '超级管理员', username: 'admin', role: '超级管理员', email: 'admin@example.com' },
+            { id: 2, name: '内容管理员', username: 'editor', role: '内容编辑', email: 'editor@example.com' },
+            { id: 3, name: '数据分析师', username: 'analyst', role: '数据分析', email: 'analyst@example.com' }
+        ];
+
+        // 渲染管理员列表
+        function renderAdmins() {
+            const list = document.getElementById('adminList');
+            list.innerHTML = admins.map(admin => `
+                <div class="admin-item">
+                    <div class="admin-info">
+                        <div class="avatar">${admin.name[0]}</div>
+                        <div>
+                            <div style="font-weight: 500; margin-bottom: 4px;">${admin.name} (${admin.username})</div>
+                            <div style="font-size: 13px; color: #999;">${admin.email}</div>
+                        </div>
+                        <span class="role-badge">${admin.role}</span>
+                    </div>
+                    <div class="settings-control">
+                        ${admin.id !== 1 ? `
+                            <button class="btn btn-sm btn-outline" onclick="editAdmin(${admin.id})">编辑</button>
+                            <button class="btn btn-sm btn-outline" onclick="deleteAdmin(${admin.id})">删除</button>
+                        ` : '<span style="color: #999; font-size: 13px;">默认账号</span>'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 开关切换
+        function toggleSwitch(element) {
+            element.classList.toggle('active');
+            const isActive = element.classList.contains('active');
+            showToast(isActive ? '已启用' : '已禁用', 'success');
+        }
+
+        // 保存网站名称
+        function saveSiteName() {
+            const name = document.getElementById('siteName').value;
+            showToast('网站名称已保存：' + name, 'success');
+        }
+
+        // 保存网站描述
+        function saveSiteDesc() {
+            const desc = document.getElementById('siteDesc').value;
+            showToast('网站描述已保存', 'success');
+        }
+
+        // 保存对话限制
+        function saveChatLimit() {
+            const limit = document.getElementById('chatLimit').value;
+            showToast('对话限制已保存：每日' + limit + '次', 'success');
+        }
+
+        // 保存备份时间
+        function saveBackupTime() {
+            const time = document.getElementById('backupTime').value;
+            showToast('备份时间已设置为：' + time, 'success');
+        }
+
+        // 立即备份
+        async function backupNow() {
+            showToast('正在备份数据...', 'info');
+            await delay(2000);
+            showToast('数据备份完成！', 'success');
+        }
+
+        // 编辑管理员
+        function editAdmin(id) {
+            showToast('编辑管理员功能', 'info');
+        }
+
+        // 删除管理员
+        function deleteAdmin(id) {
+            showConfirm('确定要删除这个管理员吗？', () => {
+                showToast('管理员已删除', 'success');
+            });
+        }
+
+        // 初始化
+        renderAdmins();
+    </script>
+</body>
+</html>

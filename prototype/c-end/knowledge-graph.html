@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>景点知识图谱 - 云游坊</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <style>
+        .graph-container {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .graph-header {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .graph-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .graph-title h1 {
+            font-size: 28px;
+            color: #333;
+            margin: 0;
+        }
+
+        .graph-icon {
+            font-size: 32px;
+        }
+
+        .graph-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .graph-main {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+
+        .graph-canvas-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            min-height: 700px;
+        }
+
+        .graph-canvas {
+            width: 100%;
+            height: 650px;
+            border: 2px solid #f0f0f0;
+            border-radius: 8px;
+            position: relative;
+            background: linear-gradient(to bottom, #fafafa 0%, #ffffff 100%);
+            overflow: hidden;
+        }
+
+        .graph-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sidebar-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .sidebar-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .filter-group {
+            margin-bottom: 16px;
+        }
+
+        .filter-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .filter-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .filter-option:hover {
+            background: #f5f5f5;
+        }
+
+        .filter-option input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .node-detail {
+            display: none;
+        }
+
+        .node-detail.active {
+            display: block;
+        }
+
+        .node-detail-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .node-icon-large {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .node-info h3 {
+            font-size: 18px;
+            color: #333;
+            margin: 0 0 8px 0;
+        }
+
+        .node-type-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .node-description {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+            margin: 16px 0;
+        }
+
+        .node-relations {
+            margin-top: 16px;
+        }
+
+        .relation-item {
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .relation-type {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        /* 图谱节点样式 */
+        .graph-node {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .graph-node:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        .graph-node.active {
+            transform: scale(1.15);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            z-index: 11;
+        }
+
+        .node-icon {
+            font-size: 32px;
+        }
+
+        .node-label {
+            position: absolute;
+            bottom: -25px;
+            font-size: 12px;
+            color: #333;
+            font-weight: bold;
+            text-align: center;
+            width: 100px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 图谱连线 */
+        .graph-line {
+            position: absolute;
+            height: 2px;
+            background: #ccc;
+            transform-origin: left center;
+            pointer-events: none;
+        }
+
+        .graph-line.active {
+            background: #667eea;
+            height: 3px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .graph-main {
+                grid-template-columns: 1fr;
+            }
+
+            .graph-sidebar {
+                order: -1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="home.html" class="logo">云游坊</a>
+            <ul class="nav-menu">
+                <li><a href="home.html">首页</a></li>
+                <li><a href="plans.html">我的计划</a></li>
+                <li><a href="footprints.html">足迹</a></li>
+                <li><a href="discover.html">发现</a></li>
+            </ul>
+            <div class="user-menu">
+                <div class="avatar" onclick="window.location.href='profile.html'">游</div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="graph-container">
+        <!-- 头部 -->
+        <div class="graph-header">
+            <div class="graph-title">
+                <span class="graph-icon">🕸️</span>
+                <div>
+                    <h1>故宫博物院 - 知识图谱</h1>
+                    <p style="margin: 4px 0 0 0; color: #999; font-size: 14px;">探索景点的历史文化关联</p>
+                </div>
+            </div>
+            <div class="graph-controls">
+                <button class="btn btn-outline" onclick="resetGraph()">重置视图</button>
+                <button class="btn btn-secondary" onclick="window.location.href='attraction-detail.html'">返回详情</button>
+            </div>
+        </div>
+
+        <!-- 主体内容 -->
+        <div class="graph-main">
+            <!-- 图谱画布 -->
+            <div class="graph-canvas-section">
+                <div class="graph-canvas" id="graphCanvas">
+                    <!-- 节点和连线将通过 JavaScript 动态生成 -->
+                </div>
+            </div>
+
+            <!-- 侧边栏 -->
+            <div class="graph-sidebar">
+                <!-- 筛选器 -->
+                <div class="sidebar-section">
+                    <div class="sidebar-title">🎯 关系筛选</div>
+                    <div class="filter-group">
+                        <label class="filter-label">显示关系类型</label>
+                        <div class="filter-options">
+                            <label class="filter-option">
+                                <input type="checkbox" checked onchange="filterRelation('person')">
+                                <span>历史人物</span>
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" checked onchange="filterRelation('event')">
+                                <span>历史事件</span>
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" checked onchange="filterRelation('culture')">
+                                <span>文化元素</span>
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" checked onchange="filterRelation('nearby')">
+                                <span>附近景点</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 图例 -->
+                <div class="sidebar-section">
+                    <div class="sidebar-title">📊 图例说明</div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+                            <span>景点</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"></div>
+                            <span>历史人物</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"></div>
+                            <span>历史事件</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);"></div>
+                            <span>文化元素</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);"></div>
+                            <span>附近景点</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 节点详情 -->
+                <div class="sidebar-section node-detail" id="nodeDetail">
+                    <div class="sidebar-title">ℹ️ 节点详情</div>
+                    <div id="nodeDetailContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script>
+        // 模拟知识图谱数据
+        const graphData = {
+            gugong: {
+                center: { id: 'gugong', type: 'attraction', label: '故宫博物院', icon: '🏛️', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', desc: '中国明清两代的皇家宫殿，位于北京市中心，是世界上现存规模最大、保存最为完整的木质结构古建筑之一。' },
+                nodes: [
+                    { id: 'zhudi', type: 'person', label: '朱棣', icon: '👑', color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', desc: '明朝第三位皇帝，年号永乐。迁都北京，下令修建故宫。', relation: '建造者' },
+                    { id: 'kangxi', type: 'person', label: '康熙帝', icon: '👑', color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', desc: '清朝第四位皇帝，在位61年，是中国历史上在位时间最长的皇帝。', relation: '居住者' },
+                    { id: 'qianlong', type: 'person', label: '乾隆帝', icon: '👑', color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', desc: '清朝第六位皇帝，在位60年，文治武功达到顶峰。', relation: '居住者' },
+                    { id: 'mingqing', type: 'culture', label: '明清建筑', icon: '🏯', color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', desc: '中国古代建筑的巅峰之作，体现了中国传统建筑艺术的最高水平。', relation: '建筑风格' },
+                    { id: 'forbidden', type: 'event', label: '紫禁城', icon: '📜', color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', desc: '明清两代24位皇帝的居所，历经500多年历史。', relation: '历史名称' },
+                    { id: 'tiantan', type: 'nearby', label: '天坛', icon: '⛩️', color: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', desc: '明清两代皇帝祭天祈谷的场所，距离故宫约5公里。', relation: '附近景点' },
+                    { id: 'jingshan', type: 'nearby', label: '景山公园', icon: '⛰️', color: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', desc: '位于故宫北侧，可俯瞰故宫全景，距离故宫约0.5公里。', relation: '附近景点' }
+                ]
+            },
+            zhudi: {
+                center: { id: 'zhudi', type: 'person', label: '朱棣', icon: '👑', color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', desc: '明朝第三位皇帝，年号永乐。迁都北京，下令修建故宫。' },
+                nodes: [
+                    { id: 'gugong', type: 'attraction', label: '故宫博物院', icon: '🏛️', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', desc: '朱棣下令修建的皇家宫殿。', relation: '修建者' },
+                    { id: 'yongle', type: 'event', label: '永乐盛世', icon: '📜', color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', desc: '明成祖朱棣开创的盛世局面。', relation: '开创' },
+                    { id: 'beijing', type: 'nearby', label: '北京城', icon: '🏙️', color: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', desc: '朱棣迁都北京，奠定现代北京城基础。', relation: '迁都' }
+                ]
+            },
+            tiantan: {
+                center: { id: 'tiantan', type: 'attraction', label: '天坛', icon: '⛩️', color: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', desc: '明清两代皇帝祭天祈谷的场所，世界文化遗产。' },
+                nodes: [
+                    { id: 'gugong', type: 'nearby', label: '故宫博物院', icon: '🏛️', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', desc: '距离天坛约5公里的皇家宫殿。', relation: '附近景点' },
+                    { id: 'jiajing', type: 'person', label: '嘉靖帝', icon: '👑', color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', desc: '明朝第11位皇帝，扩建天坛。', relation: '扩建者' },
+                    { id: 'jitian', type: 'culture', label: '祭天文化', icon: '🎭', color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', desc: '中国古代皇帝祭天的重要仪式。', relation: '文化体现' }
+                ]
+            },
+            jingshan: {
+                center: { id: 'jingshan', type: 'attraction', label: '景山公园', icon: '⛰️', color: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', desc: '位于故宫北侧，可俯瞰故宫全景。' },
+                nodes: [
+                    { id: 'gugong', type: 'nearby', label: '故宫博物院', icon: '🏛️', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', desc: '景山公园紧邻故宫。', relation: '附近景点' },
+                    { id: 'chongzhen', type: 'person', label: '崇祯帝', icon: '👑', color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', desc: '明朝最后一位皇帝，在景山自缢。', relation: '历史人物' },
+                    { id: 'mingwang', type: 'event', label: '明朝覆灭', icon: '📜', color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', desc: '1644年，崇祯帝在景山自缢，明朝灭亡。', relation: '历史事件' }
+                ]
+            }
+        };
+
+        let currentEntityId = 'gugong'; // 当前查看的实体
+        let activeFilters = { person: true, event: true, culture: true, nearby: true };
+        let activeNode = null;
+
+        // 初始化图谱
+        function initGraph() {
+            renderGraph(currentEntityId);
+        }
+
+        // 渲染图谱
+        function renderGraph(entityId) {
+            if (!graphData[entityId]) {
+                showToast('暂无该实体的知识图谱', 'info');
+                return;
+            }
+
+            currentEntityId = entityId;
+            const data = graphData[entityId];
+            const canvas = document.getElementById('graphCanvas');
+
+            // 清空画布
+            canvas.innerHTML = '';
+
+            const width = canvas.offsetWidth;
+            const height = canvas.offsetHeight;
+
+            // 中心节点
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            // 更新页面标题
+            document.querySelector('.graph-title h1').textContent = `${data.center.label} - 知识图谱`;
+
+            // 绘制中心节点
+            createNode(data.center, centerX - 40, centerY - 40, true);
+
+            // 绘制周围节点（环形分布）
+            const radius = 200;
+            const angleStep = (2 * Math.PI) / data.nodes.length;
+
+            data.nodes.forEach((node, index) => {
+                const angle = index * angleStep;
+                const x = centerX + radius * Math.cos(angle) - 40;
+                const y = centerY + radius * Math.sin(angle) - 40;
+
+                createNode(node, x, y, false);
+
+                // 绘制连线
+                createEdge(centerX, centerY, x + 40, y + 40, node.type);
+            });
+        }
+
+        // 创建节点
+        function createNode(node, x, y, isCenter) {
+            const canvas = document.getElementById('graphCanvas');
+            const nodeEl = document.createElement('div');
+            nodeEl.className = 'graph-node';
+            if (isCenter) nodeEl.classList.add('active');
+            nodeEl.style.left = x + 'px';
+            nodeEl.style.top = y + 'px';
+            nodeEl.style.background = node.color;
+            nodeEl.setAttribute('data-id', node.id);
+            nodeEl.setAttribute('data-type', node.type);
+
+            nodeEl.innerHTML = `
+                <span class="node-icon">${node.icon}</span>
+                <span class="node-label">${node.label}</span>
+            `;
+
+            // 点击事件：如果有对应的图谱数据，则切换图谱；否则显示详情
+            nodeEl.onclick = () => {
+                if (graphData[node.id]) {
+                    // 切换到该实体的图谱
+                    showToast(`正在加载 ${node.label} 的知识图谱...`, 'info');
+                    setTimeout(() => {
+                        renderGraph(node.id);
+                        showToast(`已切换到 ${node.label}`, 'success');
+                    }, 500);
+                } else {
+                    // 只显示详情
+                    showNodeDetail(node);
+                }
+            };
+
+            canvas.appendChild(nodeEl);
+        }
+
+        // 创建连线
+        function createEdge(x1, y1, x2, y2, type) {
+            const canvas = document.getElementById('graphCanvas');
+            const line = document.createElement('div');
+            line.className = 'graph-line';
+            line.setAttribute('data-type', type);
+
+            const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            const angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
+
+            line.style.width = length + 'px';
+            line.style.left = x1 + 'px';
+            line.style.top = y1 + 'px';
+            line.style.transform = `rotate(${angle}deg)`;
+
+            canvas.appendChild(line);
+        }
+
+        // 显示节点详情
+        function showNodeDetail(node) {
+            const detailSection = document.getElementById('nodeDetail');
+            const content = document.getElementById('nodeDetailContent');
+
+            // 更新激活状态
+            document.querySelectorAll('.graph-node').forEach(el => el.classList.remove('active'));
+            const targetNode = document.querySelector(`[data-id="${node.id}"]`);
+            if (targetNode) targetNode.classList.add('active');
+
+            const typeMap = {
+                attraction: '景点',
+                person: '历史人物',
+                event: '历史事件',
+                culture: '文化元素',
+                nearby: '附近景点'
+            };
+
+            // 检查是否有可跳转的图谱
+            const hasGraph = graphData[node.id];
+
+            content.innerHTML = `
+                <div class="node-detail-header">
+                    <div class="node-icon-large" style="background: ${node.color}">
+                        ${node.icon}
+                    </div>
+                    <div class="node-info">
+                        <h3>${node.label}</h3>
+                        <span class="node-type-badge">${typeMap[node.type]}</span>
+                    </div>
+                </div>
+                <div class="node-description">${node.desc}</div>
+                ${node.relation ? `
+                <div class="node-relations">
+                    <strong>关系：</strong>
+                    <div class="relation-item">
+                        <span class="relation-type">${node.relation}</span>
+                    </div>
+                </div>
+                ` : ''}
+                ${hasGraph ? `
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-primary btn-sm" style="width: 100%;" onclick="renderGraph('${node.id}')">
+                        🕸️ 查看 ${node.label} 的知识图谱
+                    </button>
+                </div>
+                ` : ''}
+            `;
+
+            detailSection.classList.add('active');
+        }
+
+        // 筛选关系
+        function filterRelation(type) {
+            activeFilters[type] = !activeFilters[type];
+
+            document.querySelectorAll(`[data-type="${type}"]`).forEach(el => {
+                el.style.display = activeFilters[type] ? '' : 'none';
+            });
+        }
+
+        // 重置图谱
+        function resetGraph() {
+            renderGraph('gugong');
+            document.getElementById('nodeDetail').classList.remove('active');
+            showToast('已重置到故宫知识图谱', 'success');
+        }
+
+        // 初始化
+        initGraph();
+    </script>
+</body>
+</html>

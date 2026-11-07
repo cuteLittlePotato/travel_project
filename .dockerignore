@@ -1,0 +1,22 @@
+# 构建上下文为仓库根目录时使用（backend/Dockerfile）
+.git
+.venv
+.idea
+.vscode
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+
+frontend/**/node_modules
+frontend/**/.next
+frontend/**/dist
+
+prototype
+docs
+deploy
+
+# 离线构建用的 wheel 目录（弱网环境）
+!.wheels
+!.wheels/**

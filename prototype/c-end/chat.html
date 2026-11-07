@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能助手 - 云游坊</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <style>
+        body {
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        .chat-layout {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 会话列表侧边栏 */
+        .sessions-sidebar {
+            width: 280px;
+            background: #f8f9fa;
+            border-right: 1px solid #e8e8e8;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: white;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .sidebar-header h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .new-session-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .new-session-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .sessions-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .session-item {
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .session-item:hover {
+            background: #f0f0f0;
+        }
+
+        .session-item.active {
+            background: #e3f2fd;
+            border-color: #667eea;
+        }
+
+        .session-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .session-preview {
+            font-size: 12px;
+            color: #999;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .session-time {
+            font-size: 11px;
+            color: #bbb;
+            margin-top: 4px;
+        }
+
+        .session-delete {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 14px;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .session-item:hover .session-delete {
+            opacity: 1;
+        }
+
+        .session-delete:hover {
+            transform: scale(1.1);
+        }
+
+        .empty-sessions {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-sessions-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        /* 聊天主区域 */
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .chat-header {
+            padding: 20px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .toggle-sidebar-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .toggle-sidebar-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .chat-header h2 {
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .header-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .header-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .close-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .close-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            max-width: 70%;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .message.assistant .message-avatar {
+            background: #f0f0f0;
+        }
+
+        .message-content {
+            background: #f8f9fa;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            border: 1px solid #e8e8e8;
+        }
+
+        .quick-actions {
+            padding: 16px 30px;
+            background: #fafafa;
+            border-top: 1px solid #e8e8e8;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .quick-action-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #666;
+        }
+
+        .quick-action-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .chat-input-container {
+            padding: 20px 30px;
+            background: white;
+            border-top: 1px solid #e8e8e8;
+            display: flex;
+            gap: 12px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 24px;
+            font-size: 14px;
+            resize: none;
+            min-height: 48px;
+            max-height: 120px;
+            font-family: inherit;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            transform: scale(1.1);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 12px 16px;
+            background: white;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            width: fit-content;
+        }
+
+        .typing-indicator.active {
+            display: block;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .sessions-sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 1000;
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .sessions-sidebar.active {
+                transform: translateX(0);
+            }
+
+            .toggle-sidebar-btn {
+                display: flex;
+            }
+
+            .message {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-layout">
+        <!-- 会话列表侧边栏 -->
+        <aside class="sessions-sidebar" id="sessionsSidebar">
+            <div class="sidebar-header">
+                <h2>💬 对话历史</h2>
+                <button class="new-session-btn" onclick="createNewSession()">
+                    <span>+</span>
+                    <span>新建对话</span>
+                </button>
+            </div>
+            <div class="sessions-list" id="sessionsList">
+                <!-- 会话列表将在这里动态生成 -->
+            </div>
+        </aside>
+
+        <!-- 聊天主区域 -->
+        <main class="chat-main">
+            <div class="chat-header">
+                <div class="chat-header-left">
+                    <button class="toggle-sidebar-btn" onclick="toggleSidebar()">☰</button>
+                    <h2>
+                        <span>🤖</span>
+                        <span id="chatTitle">智能助手</span>
+                    </h2>
+                </div>
+                <div class="chat-actions">
+                    <button class="header-btn" onclick="clearCurrentSession()">清空对话</button>
+                    <button class="close-btn" onclick="window.history.back()">×</button>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <!-- 消息将在这里动态生成 -->
+            </div>
+
+            <div class="quick-actions" id="quickActions">
+                <button class="quick-action-btn" onclick="sendQuickMessage('我想去北京旅游，有什么推荐吗？')">北京旅游推荐</button>
+                <button class="quick-action-btn" onclick="sendQuickMessage('五月适合去哪里玩？')">五月旅游建议</button>
+                <button class="quick-action-btn" onclick="sendQuickMessage('帮我规划一个3天的行程')">规划3天行程</button>
+                <button class="quick-action-btn" onclick="sendQuickMessage('查询故宫的门票价格')">查询门票价格</button>
+            </div>
+
+            <div class="chat-input-container">
+                <textarea
+                    class="chat-input"
+                    id="chatInput"
+                    placeholder="输入您的问题..."
+                    rows="1"></textarea>
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script src="../js/mockData.js"></script>
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // 会话管理
+        let sessions = storage.get('chatSessions') || [];
+        let currentSessionId = null;
+
+        // 初始化
+        function init() {
+            // 如果没有会话，创建默认会话
+            if (sessions.length === 0) {
+                createNewSession();
+            } else {
+                // 加载最后一个会话
+                loadSession(sessions[0].id);
+            }
+            renderSessionsList();
+            checkContext();
+        }
+
+        // 创建新会话
+        function createNewSession() {
+            const newSession = {
+                id: generateId(),
+                title: '新对话',
+                messages: [{
+                    role: 'assistant',
+                    content: `您好！我是云游坊智能助手。我可以帮您：<br>
+                        • 推荐旅游景点<br>
+                        • 规划旅游行程<br>
+                        • 查询景点信息<br>
+                        • 解答旅游相关问题<br><br>
+                        请问有什么可以帮到您？`
+                }],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            sessions.unshift(newSession);
+            saveSessions();
+            loadSession(newSession.id);
+            renderSessionsList();
+            showToast('已创建新对话', 'success');
+        }
+
+        // 加载会话
+        function loadSession(sessionId) {
+            currentSessionId = sessionId;
+            const session = sessions.find(s => s.id === sessionId);
+            if (!session) return;
+
+            // 清空当前消息
+            chatMessages.innerHTML = '';
+
+            // 渲染会话消息
+            session.messages.forEach(msg => {
+                addMessageToUI(msg.role, msg.content);
+            });
+
+            // 更新标题
+            document.getElementById('chatTitle').textContent = session.title;
+
+            // 更新会话列表激活状态
+            renderSessionsList();
+        }
+
+        // 切换会话
+        function switchSession(sessionId) {
+            loadSession(sessionId);
+        }
+
+        // 删除会话
+        function deleteSession(sessionId, event) {
+            event.stopPropagation();
+
+            if (!confirm('确定要删除这个对话吗？')) return;
+
+            const index = sessions.findIndex(s => s.id === sessionId);
+            if (index === -1) return;
+
+            sessions.splice(index, 1);
+            saveSessions();
+
+            // 如果删除的是当前会话
+            if (sessionId === currentSessionId) {
+                if (sessions.length > 0) {
+                    loadSession(sessions[0].id);
+                } else {
+                    createNewSession();
+                }
+            }
+
+            renderSessionsList();
+            showToast('对话已删除', 'success');
+        }
+
+        // 清空当前会话
+        function clearCurrentSession() {
+            if (!confirm('确定要清空当前对话吗？')) return;
+
+            const session = sessions.find(s => s.id === currentSessionId);
+            if (!session) return;
+
+            session.messages = [{
+                role: 'assistant',
+                content: `您好！我是云游坊智能助手。我可以帮您：<br>
+                    • 推荐旅游景点<br>
+                    • 规划旅游行程<br>
+                    • 查询景点信息<br>
+                    • 解答旅游相关问题<br><br>
+                    请问有什么可以帮到您？`
+            }];
+            session.title = '新对话';
+            session.updatedAt = new Date().toISOString();
+
+            saveSessions();
+            loadSession(currentSessionId);
+            renderSessionsList();
+            showToast('对话已清空', 'success');
+        }
+
+        // 渲染会话列表
+        function renderSessionsList() {
+            const list = document.getElementById('sessionsList');
+
+            if (sessions.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-sessions">
+                        <div class="empty-sessions-icon">💭</div>
+                        <div>暂无对话记录</div>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = sessions.map(session => {
+                const lastMessage = session.messages[session.messages.length - 1];
+                const preview = lastMessage ? lastMessage.content.replace(/<[^>]*>/g, '').substring(0, 50) : '暂无消息';
+                const time = formatTime(session.updatedAt);
+
+                return `
+                    <div class="session-item ${session.id === currentSessionId ? 'active' : ''}" onclick="switchSession('${session.id}')">
+                        <div class="session-title">${session.title}</div>
+                        <div class="session-preview">${preview}</div>
+                        <div class="session-time">${time}</div>
+                        <button class="session-delete" onclick="deleteSession('${session.id}', event)" title="删除对话">×</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 格式化时间
+        function formatTime(isoString) {
+            const date = new Date(isoString);
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+
+            if (minutes < 1) return '刚刚';
+            if (minutes < 60) return `${minutes}分钟前`;
+            if (hours < 24) return `${hours}小时前`;
+            if (days < 7) return `${days}天前`;
+            return date.toLocaleDateString();
+        }
+
+        // 保存会话
+        function saveSessions() {
+            storage.set('chatSessions', sessions);
+        }
+
+        // 检查是否有上下文（从景点详情页跳转）
+        function checkContext() {
+            const context = storage.get('chatContext');
+            if (context && context.type === 'attraction') {
+                const attraction = context.data;
+                setTimeout(() => {
+                    sendQuickMessage(`我想了解${attraction.name}的详细信息`);
+                }, 500);
+                storage.remove('chatContext');
+            }
+        }
+
+        // 发送消息
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            const session = sessions.find(s => s.id === currentSessionId);
+            if (!session) return;
+
+            // 添加用户消息
+            session.messages.push({
+                role: 'user',
+                content: message
+            });
+
+            // 如果是第一条用户消息，更新会话标题
+            if (session.messages.length === 2) {
+                session.title = message.substring(0, 20) + (message.length > 20 ? '...' : '');
+            }
+
+            addMessageToUI('user', message);
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+
+            // 禁用发送按钮
+            sendBtn.disabled = true;
+
+            // 显示输入中指示器
+            showTypingIndicator();
+
+            // 模拟 AI 回复
+            await delay(1500);
+            hideTypingIndicator();
+
+            const response = generateResponse(message);
+            session.messages.push({
+                role: 'assistant',
+                content: response
+            });
+
+            addMessageToUI('assistant', response);
+
+            // 更新会话时间
+            session.updatedAt = new Date().toISOString();
+            saveSessions();
+            renderSessionsList();
+
+            sendBtn.disabled = false;
+            chatInput.focus();
+        }
+
+        // 快速发送预设消息
+        function sendQuickMessage(message) {
+            chatInput.value = message;
+            sendMessage();
+        }
+
+        // 添加消息到UI
+        function addMessageToUI(role, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            const avatar = role === 'user' ? '👤' : '🤖';
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${avatar}</div>
+                <div class="message-content">${content}</div>
+            `;
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 显示输入中指示器
+        function showTypingIndicator() {
+            const indicator = document.createElement('div');
+            indicator.className = 'message assistant';
+            indicator.id = 'typingIndicator';
+            indicator.innerHTML = `
+                <div class="message-avatar">🤖</div>
+                <div class="typing-indicator active">
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(indicator);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 隐藏输入中指示器
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        // 生成 AI 回复（模拟）
+        function generateResponse(message) {
+            const lowerMsg = message.toLowerCase();
+
+            if (lowerMsg.includes('推荐') || lowerMsg.includes('去哪')) {
+                if (lowerMsg.includes('北京')) {
+                    return `北京有很多值得一去的景点！根据热度和口碑，我推荐：<br><br>
+                        📍 <strong>故宫博物院</strong> - 门票¥60，建议游玩3小时<br>
+                        📍 <strong>长城</strong> - 门票¥40，建议游玩4小时<br>
+                        📍 <strong>颐和园</strong> - 门票¥30，建议游玩3小时<br><br>
+                        您想了解具体哪个景点的详情，或者需要我帮您规划完整的行程吗？`;
+                }
+                return `我可以根据您的偏好推荐景点。请告诉我：<br>
+                    • 想去哪个城市？<br>
+                    • 计划玩几天？<br>
+                    • 偏好什么类型？（历史人文/自然景色）<br>
+                    • 预算大概多少？`;
+            }
+
+            if (lowerMsg.includes('规划') || lowerMsg.includes('行程')) {
+                return `好的！我来帮您规划行程。请提供以下信息：<br><br>
+                    📍 <strong>目的地</strong>：想去哪个城市？<br>
+                    📅 <strong>时间</strong>：出发和返程日期？<br>
+                    💰 <strong>预算</strong>：大概预算是多少？<br>
+                    👥 <strong>同行人</strong>：几个人一起？<br>
+                    ❤️ <strong>偏好</strong>：喜欢什么类型的景点？<br><br>
+                    有了这些信息，我可以为您生成详细的每日行程安排！`;
+            }
+
+            if (lowerMsg.includes('故宫')) {
+                return `<strong>故宫博物院</strong> 信息如下：<br><br>
+                    🎫 门票价格：¥60/人<br>
+                    ⏰ 开放时间：08:30-17:00<br>
+                    ⏱️ 建议游玩：3小时<br>
+                    🌟 最佳季节：春季、秋季<br>
+                    🔥 热度：95/100<br><br>
+                    <em>温馨提示：建议提前网上购票，避开节假日高峰期</em><br><br>
+                    需要我把故宫加入您的旅游计划吗？`;
+            }
+
+            if (lowerMsg.includes('五月') || lowerMsg.includes('5月')) {
+                return `五月是旅游的好时节！推荐以下目的地：<br><br>
+                    🌸 <strong>杭州西湖</strong> - 春暖花开，景色宜人<br>
+                    🏔️ <strong>张家界</strong> - 气候适宜，云雾缭绕<br>
+                    🌊 <strong>青岛</strong> - 海风习习，气候舒适<br>
+                    🏛️ <strong>西安</strong> - 古都风情，温度适中<br><br>
+                    您对哪个目的地感兴趣？我可以详细介绍！`;
+            }
+
+            return `我理解您的问题。作为智能助手，我可以帮您：<br><br>
+                • 推荐适合您的旅游景点<br>
+                • 自动生成详细的旅游行程<br>
+                • 查询景点的门票、开放时间等信息<br>
+                • 解答旅游相关的问题<br><br>
+                请告诉我您的具体需求，我会尽力帮助您！`;
+        }
+
+        // 切换侧边栏（移动端）
+        function toggleSidebar() {
+            document.getElementById('sessionsSidebar').classList.toggle('active');
+        }
+
+        // 自动调整输入框高度
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // 回车发送（Shift+Enter 换行）
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // 页面加载完成后初始化
+        init();
+    </script>
+</body>
+</html>

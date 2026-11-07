@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>景点管理 - 云游坊后台管理</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <style>
+        body {
+            background: #f5f7fa;
+        }
+
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 240px;
+            background: #001529;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            font-size: 20px;
+            font-weight: bold;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 20px 0;
+        }
+
+        .menu-item {
+            padding: 12px 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: rgba(255,255,255,0.65);
+            text-decoration: none;
+        }
+
+        .menu-item:hover,
+        .menu-item.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .menu-item.active {
+            background: #1890ff;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .admin-header {
+            background: white;
+            padding: 0 30px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        .admin-header-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .admin-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        /* 工具栏 */
+        .toolbar {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .search-box {
+            flex: 1;
+            max-width: 400px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .search-box input {
+            flex: 1;
+        }
+
+        /* 数据表格 */
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            background: #fafafa;
+            padding: 16px;
+            text-align: left;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            border-bottom: 2px solid #e8e8e8;
+        }
+
+        .data-table td {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .data-table tbody tr:hover {
+            background: #fafafa;
+        }
+
+        .attraction-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-published {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .status-draft {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 4px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-edit {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .btn-edit:hover {
+            background: #1976d2;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .btn-delete:hover {
+            background: #d32f2f;
+            color: white;
+        }
+
+        /* 分页 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 20px;
+            background: white;
+        }
+
+        .page-btn {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .page-btn:hover:not(:disabled),
+        .page-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 24px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .form-actions .btn {
+            flex: 1;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+
+            .sidebar-header,
+            .menu-item span {
+                display: none;
+            }
+
+            .menu-item {
+                justify-content: center;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-box {
+                max-width: 100%;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">云游坊后台</div>
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html" class="menu-item">
+                    <span>📊</span>
+                    <span>数据看板</span>
+                </a></li>
+                <li><a href="attractions.html" class="menu-item active">
+                    <span>🏛️</span>
+                    <span>景点管理</span>
+                </a></li>
+                <li><a href="restaurants.html" class="menu-item">
+                    <span>🍽️</span>
+                    <span>餐厅管理</span>
+                </a></li>
+                <li><a href="hotels.html" class="menu-item">
+                    <span>🏨</span>
+                    <span>酒店管理</span>
+                </a></li>
+                <li><a href="knowledge-graph.html" class="menu-item">
+                    <span>🕸️</span>
+                    <span>知识图谱</span>
+                </a></li>
+                <li><a href="knowledge-base.html" class="menu-item">
+                    <span>📚</span>
+                    <span>RAG知识库</span>
+                </a></li>
+                <li><a href="models.html" class="menu-item">
+                    <span>🧠</span>
+                    <span>模型管理</span>
+                </a></li>
+                <li><a href="users.html" class="menu-item">
+                    <span>👥</span>
+                    <span>用户管理</span>
+                </a></li>
+                <li><a href="#" class="menu-item" onclick="showToast('系统设置', 'info')">
+                    <span>⚙️</span>
+                    <span>系统设置</span>
+                </a></li>
+            </ul>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <header class="admin-header">
+                <div class="admin-header-title">景点管理</div>
+                <div class="admin-user">
+                    <span>管理员</span>
+                    <div class="avatar">管</div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <!-- 工具栏 -->
+                <div class="toolbar">
+                    <div class="search-box">
+                        <input type="text" class="input" id="searchInput" placeholder="搜索景点名称、城市...">
+                        <button class="btn btn-secondary" onclick="searchAttractions()">搜索</button>
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <select class="btn btn-outline" id="categoryFilter" onchange="filterAttractions()">
+                            <option value="">全部分类</option>
+                            <option value="历史人文">历史人文</option>
+                            <option value="自然景色">自然景色</option>
+                            <option value="世界遗产">世界遗产</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="openAddModal()">+ 添加景点</button>
+                    </div>
+                </div>
+
+                <!-- 数据表格 -->
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>图片</th>
+                                <th>景点名称</th>
+                                <th>城市</th>
+                                <th>分类</th>
+                                <th>门票价格</th>
+                                <th>热度</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attractionsTable">
+                        </tbody>
+                    </table>
+                    <div class="pagination" id="pagination"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 添加/编辑景点模态框 -->
+    <div class="modal" id="attractionModal">
+        <div class="modal-content">
+            <div class="modal-header" id="modalTitle">添加景点</div>
+            <form onsubmit="saveAttraction(event)">
+                <div class="form-group">
+                    <label class="form-label">景点名称 *</label>
+                    <input type="text" class="form-input" id="attrName" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">省份 *</label>
+                        <input type="text" class="form-input" id="attrProvince" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">城市 *</label>
+                        <input type="text" class="form-input" id="attrCity" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">分类标签</label>
+                    <input type="text" class="form-input" id="attrCategory" placeholder="例如：历史人文,5A景区">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">简介 *</label>
+                    <textarea class="form-textarea" id="attrSummary" required></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">门票价格（元）</label>
+                        <input type="number" class="form-input" id="attrPrice" value="0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">基础热度权重</label>
+                        <input type="number" class="form-input" id="attrPopularity" value="50" min="0" max="100">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">开放时间</label>
+                        <input type="text" class="form-input" id="attrHours" placeholder="例如：08:30-17:00">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">建议游玩时长（分钟）</label>
+                        <input type="number" class="form-input" id="attrDuration" value="180" min="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">最佳季节</label>
+                    <input type="text" class="form-input" id="attrSeason" placeholder="例如：春季,秋季">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script src="../js/mockData.js"></script>
+    <script>
+        let attractions = [...mockAttractions];
+        let currentPage = 1;
+        let pageSize = 10;
+        let editingId = null;
+
+        // 初始化
+        function init() {
+            renderTable();
+        }
+
+        // 渲染表格
+        function renderTable() {
+            const tbody = document.getElementById('attractionsTable');
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageData = attractions.slice(start, end);
+
+            tbody.innerHTML = pageData.map(attr => `
+                <tr>
+                    <td>${attr.id}</td>
+                    <td><img src="${attr.image}" class="attraction-thumb" onerror="this.style.background='linear-gradient(135deg, #667eea 0%, #764ba2 100%)'"></td>
+                    <td><strong>${attr.name}</strong></td>
+                    <td>${attr.city}</td>
+                    <td>
+                        ${attr.category.map(c => `<span class="tag tag-primary">${c}</span>`).join('')}
+                    </td>
+                    <td>¥${attr.ticketPrice}</td>
+                    <td>
+                        <span style="color: #667eea; font-weight: bold;">${attr.popularity}</span>
+                    </td>
+                    <td>
+                        <span class="status-badge ${attr.is_published !== false ? 'status-published' : 'status-draft'}">
+                            ${attr.is_published !== false ? '已上架' : '草稿'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="action-btn btn-edit" onclick="editAttraction(${attr.id})">编辑</button>
+                            <button class="action-btn btn-delete" onclick="deleteAttraction(${attr.id})">删除</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            renderPagination();
+        }
+
+        // 渲染分页
+        function renderPagination() {
+            const totalPages = Math.ceil(attractions.length / pageSize);
+            const pagination = document.getElementById('pagination');
+
+            let html = `
+                <button class="page-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>
+            `;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+                } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    html += `<span>...</span>`;
+                }
+            }
+
+            html += `
+                <button class="page-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>
+            `;
+
+            pagination.innerHTML = html;
+        }
+
+        // 切换页码
+        function changePage(page) {
+            const totalPages = Math.ceil(attractions.length / pageSize);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderTable();
+        }
+
+        // 搜索景点
+        function searchAttractions() {
+            const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+            if (!keyword) {
+                attractions = [...mockAttractions];
+            } else {
+                attractions = mockAttractions.filter(a =>
+                    a.name.toLowerCase().includes(keyword) ||
+                    a.city.toLowerCase().includes(keyword)
+                );
+            }
+            currentPage = 1;
+            renderTable();
+        }
+
+        // 过滤景点
+        function filterAttractions() {
+            const category = document.getElementById('categoryFilter').value;
+            if (!category) {
+                attractions = [...mockAttractions];
+            } else {
+                attractions = mockAttractions.filter(a => a.category.includes(category));
+            }
+            currentPage = 1;
+            renderTable();
+        }
+
+        // 打开添加模态框
+        function openAddModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = '添加景点';
+            document.getElementById('attractionModal').classList.add('active');
+            document.querySelector('form').reset();
+        }
+
+        // 编辑景点
+        function editAttraction(id) {
+            editingId = id;
+            const attr = mockAttractions.find(a => a.id === id);
+            if (!attr) return;
+
+            document.getElementById('modalTitle').textContent = '编辑景点';
+            document.getElementById('attrName').value = attr.name;
+            document.getElementById('attrProvince').value = attr.province;
+            document.getElementById('attrCity').value = attr.city;
+            document.getElementById('attrCategory').value = attr.category.join(',');
+            document.getElementById('attrSummary').value = attr.summary;
+            document.getElementById('attrPrice').value = attr.ticketPrice;
+            document.getElementById('attrPopularity').value = attr.popularity;
+            document.getElementById('attrHours').value = attr.openingHours;
+            document.getElementById('attrDuration').value = attr.visitDuration;
+            document.getElementById('attrSeason').value = attr.bestSeason.join(',');
+
+            document.getElementById('attractionModal').classList.add('active');
+        }
+
+        // 保存景点
+        async function saveAttraction(event) {
+            event.preventDefault();
+
+            const data = {
+                name: document.getElementById('attrName').value,
+                province: document.getElementById('attrProvince').value,
+                city: document.getElementById('attrCity').value,
+                category: document.getElementById('attrCategory').value.split(',').map(s => s.trim()).filter(Boolean),
+                summary: document.getElementById('attrSummary').value,
+                ticketPrice: parseInt(document.getElementById('attrPrice').value),
+                popularity: parseInt(document.getElementById('attrPopularity').value),
+                openingHours: document.getElementById('attrHours').value,
+                visitDuration: parseInt(document.getElementById('attrDuration').value),
+                bestSeason: document.getElementById('attrSeason').value.split(',').map(s => s.trim()).filter(Boolean)
+            };
+
+            showToast('正在保存...', 'info');
+            await delay(1000);
+
+            if (editingId) {
+                const index = mockAttractions.findIndex(a => a.id === editingId);
+                if (index !== -1) {
+                    Object.assign(mockAttractions[index], data);
+                    showToast('景点更新成功！', 'success');
+                }
+            } else {
+                mockAttractions.push({
+                    id: generateId(),
+                    ...data,
+                    image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
+                    reason: '新添加的景点',
+                    is_published: true
+                });
+                showToast('景点添加成功！', 'success');
+            }
+
+            closeModal();
+            attractions = [...mockAttractions];
+            renderTable();
+        }
+
+        // 删除景点
+        function deleteAttraction(id) {
+            if (confirm('确定要删除这个景点吗？')) {
+                const index = mockAttractions.findIndex(a => a.id === id);
+                if (index !== -1) {
+                    mockAttractions.splice(index, 1);
+                    attractions = [...mockAttractions];
+                    renderTable();
+                    showToast('景点已删除', 'success');
+                }
+            }
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('attractionModal').classList.remove('active');
+            document.querySelector('form').reset();
+        }
+
+        // 点击模态框背景关闭
+        document.getElementById('attractionModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // 页面加载完成后初始化
+        init();
+    </script>
+</body>
+</html>

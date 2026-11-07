@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型管理 - 云游坊后台</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <style>
+        body { background: #f5f7fa; }
+
+        .admin-layout { display: flex; min-height: 100vh; }
+
+        /* 侧边栏 */
+        .sidebar { width: 240px; background: #001529; color: white; flex-shrink: 0; }
+        .sidebar-header {
+            padding: 24px 20px; font-size: 20px; font-weight: bold;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar-menu { list-style: none; padding: 20px 0; }
+        .sidebar-menu li { margin: 0; }
+        .menu-item {
+            display: flex; align-items: center; gap: 12px; padding: 14px 24px;
+            color: rgba(255,255,255,0.65); text-decoration: none; transition: all 0.3s;
+        }
+        .menu-item:hover { background: rgba(255,255,255,0.08); color: white; }
+        .menu-item.active { background: #1890ff; color: white; }
+
+        /* 主内容区 */
+        .main-content { flex: 1; display: flex; flex-direction: column; }
+        .admin-header {
+            background: white; padding: 0 30px; height: 64px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .admin-header-title { font-size: 20px; font-weight: bold; color: #333; }
+        .admin-user { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+        .avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: bold;
+        }
+        .content-area { flex: 1; padding: 30px; overflow-y: auto; }
+
+        /* 分类标签 */
+        .category-tabs {
+            display: flex; gap: 8px; margin-bottom: 24px;
+            border-bottom: 2px solid #f0f0f0; padding-bottom: 0;
+        }
+        .category-tab {
+            padding: 12px 24px; background: none; border: none;
+            font-size: 15px; color: #666; cursor: pointer;
+            border-bottom: 2px solid transparent; margin-bottom: -2px;
+            transition: all 0.3s; display: flex; align-items: center; gap: 6px;
+        }
+        .category-tab:hover { color: #667eea; }
+        .category-tab.active { color: #667eea; border-bottom-color: #667eea; font-weight: bold; }
+        .tab-count {
+            background: #f0f0f0; color: #666; font-size: 11px;
+            padding: 2px 7px; border-radius: 10px; font-weight: normal;
+        }
+        .category-tab.active .tab-count { background: rgba(102,126,234,0.15); color: #667eea; }
+
+        /* 工具栏 */
+        .toolbar {
+            background: white; padding: 20px; border-radius: 8px;
+            margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 16px;
+        }
+        .search-box { display: flex; gap: 12px; flex: 1; max-width: 400px; }
+        .search-input {
+            flex: 1; padding: 10px 16px; border: 1px solid #ddd;
+            border-radius: 8px; font-size: 14px;
+        }
+
+        /* 模型卡片 */
+        .model-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 20px;
+        }
+        .model-card {
+            background: white; border-radius: 12px; padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s; position: relative;
+        }
+        .model-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+        .model-card.disabled { opacity: 0.6; }
+
+        .model-card-head {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        .model-name-wrap { display: flex; align-items: center; gap: 12px; flex: 1; }
+        .model-icon {
+            width: 44px; height: 44px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0;
+        }
+        .model-name { font-size: 17px; font-weight: bold; color: #333; margin-bottom: 4px; }
+        .model-id { font-size: 12px; color: #999; font-family: monospace; }
+
+        .model-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+        .badge {
+            padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: bold;
+        }
+        .badge-default { background: #fff3e0; color: #f57c00; }
+        .badge-enabled { background: #e8f5e9; color: #388e3c; }
+        .badge-disabled { background: #f5f5f5; color: #757575; }
+
+        .model-info {
+            display: flex; flex-direction: column; gap: 8px;
+            padding: 14px; background: #fafafa; border-radius: 8px;
+            margin-bottom: 16px; font-size: 13px;
+        }
+        .info-row { display: flex; justify-content: space-between; gap: 12px; }
+        .info-label { color: #999; flex-shrink: 0; }
+        .info-value {
+            color: #333; text-align: right; word-break: break-all;
+            font-family: monospace; font-size: 12px;
+        }
+
+        .model-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .model-actions .btn { flex: 1; min-width: 72px; padding: 7px 12px; font-size: 13px; }
+
+        /* 模态框 */
+        .modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5); z-index: 9999;
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white; border-radius: 12px; padding: 32px;
+            max-width: 680px; width: 100%; max-height: 88vh; overflow-y: auto;
+        }
+        .modal-header {
+            font-size: 22px; font-weight: bold; margin-bottom: 24px;
+            color: #333; display: flex; justify-content: space-between; align-items: center;
+        }
+        .close-modal { font-size: 28px; cursor: pointer; color: #999; line-height: 1; }
+        .close-modal:hover { color: #333; }
+
+        .form-group { margin-bottom: 18px; }
+        .form-label {
+            display: block; font-size: 14px; font-weight: bold;
+            color: #333; margin-bottom: 8px;
+        }
+        .form-label .required { color: #d32f2f; margin-left: 2px; }
+        .form-input, .form-select, .form-textarea {
+            width: 100%; padding: 11px 14px; border: 1px solid #ddd;
+            border-radius: 8px; font-size: 14px; font-family: inherit;
+        }
+        .form-textarea { resize: vertical; min-height: 70px; }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none; border-color: #667eea;
+        }
+        .form-input:disabled, .form-select:disabled {
+            background: #f5f5f5; color: #999; cursor: not-allowed;
+        }
+        .form-hint { font-size: 12px; color: #999; margin-top: 5px; line-height: 1.5; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+        .form-section-title {
+            font-size: 14px; font-weight: bold; color: #667eea;
+            margin: 24px 0 14px; padding-bottom: 8px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .form-actions {
+            display: flex; gap: 12px; margin-top: 28px;
+            padding-top: 20px; border-top: 1px solid #f0f0f0;
+        }
+        .form-actions .btn { flex: 1; }
+
+        /* 连通性测试结果 */
+        .test-result { margin-top: 16px; }
+        .test-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px; border-radius: 8px;
+            margin-bottom: 8px; font-size: 14px;
+        }
+        .test-ok { background: #f1f8f4; color: #2e7d32; }
+        .test-fail { background: #fdeded; color: #c62828; }
+        .test-loading { background: #f5f5f5; color: #666; }
+        .test-detail { margin-left: auto; font-size: 12px; opacity: 0.75; }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center; padding: 60px 20px;
+            color: #999; background: white; border-radius: 12px;
+        }
+        .empty-icon { font-size: 56px; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">云游坊后台</div>
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html" class="menu-item"><span>📊</span><span>数据看板</span></a></li>
+                <li><a href="attractions.html" class="menu-item"><span>🏛️</span><span>景点管理</span></a></li>
+                <li><a href="restaurants.html" class="menu-item"><span>🍽️</span><span>餐厅管理</span></a></li>
+                <li><a href="hotels.html" class="menu-item"><span>🏨</span><span>酒店管理</span></a></li>
+                <li><a href="knowledge-graph.html" class="menu-item"><span>🕸️</span><span>知识图谱</span></a></li>
+                <li><a href="knowledge-base.html" class="menu-item"><span>📚</span><span>RAG知识库</span></a></li>
+                <li><a href="models.html" class="menu-item active"><span>🧠</span><span>模型管理</span></a></li>
+                <li><a href="users.html" class="menu-item"><span>👥</span><span>用户管理</span></a></li>
+                <li><a href="settings.html" class="menu-item"><span>⚙️</span><span>系统设置</span></a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <header class="admin-header">
+                <div class="admin-header-title">模型管理</div>
+                <div class="admin-user">
+                    <span>管理员</span>
+                    <div class="avatar">管</div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <!-- 分类标签 -->
+                <div class="category-tabs" id="categoryTabs">
+                    <button class="category-tab active" data-cat="all" onclick="switchCategory('all', this)">
+                        全部 <span class="tab-count" id="countAll">0</span>
+                    </button>
+                    <button class="category-tab" data-cat="chat" onclick="switchCategory('chat', this)">
+                        💬 文本对话 <span class="tab-count" id="countChat">0</span>
+                    </button>
+                    <button class="category-tab" data-cat="vision" onclick="switchCategory('vision', this)">
+                        🖼️ 图片理解 <span class="tab-count" id="countVision">0</span>
+                    </button>
+                    <button class="category-tab" data-cat="embedding" onclick="switchCategory('embedding', this)">
+                        🔢 向量化 <span class="tab-count" id="countEmbedding">0</span>
+                    </button>
+                    <button class="category-tab" data-cat="rerank" onclick="switchCategory('rerank', this)">
+                        📊 重排序 <span class="tab-count" id="countRerank">0</span>
+                    </button>
+                    <button class="category-tab" data-cat="ocr" onclick="switchCategory('ocr', this)">
+                        📄 OCR解析 <span class="tab-count" id="countOcr">0</span>
+                    </button>
+                </div>
+
+                <!-- 工具栏 -->
+                <div class="toolbar">
+                    <div class="search-box">
+                        <input type="text" class="search-input" placeholder="搜索模型名称..." id="searchInput" oninput="renderModels()">
+                    </div>
+                    <button class="btn btn-primary" onclick="openRegisterModal()">➕ 注册模型</button>
+                </div>
+
+                <!-- 模型卡片网格 -->
+                <div class="model-grid" id="modelGrid"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 注册 / 编辑模型模态框 -->
+    <div class="modal" id="modelModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="modalTitle">注册模型</span>
+                <span class="close-modal" onclick="closeModelModal()">×</span>
+            </div>
+            <form onsubmit="saveModel(event)">
+                <div class="form-section-title">基础信息</div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">模型名称<span class="required">*</span></label>
+                        <input type="text" class="form-input" id="mName" placeholder="如：DeepSeek-V3" required>
+                        <div class="form-hint">用户选择时看到的展示名</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">模型类别<span class="required">*</span></label>
+                        <select class="form-select" id="mCategory" required onchange="onCategoryChange()">
+                            <option value="">请选择</option>
+                            <option value="chat">💬 文本对话</option>
+                            <option value="vision">🖼️ 图片理解</option>
+                            <option value="embedding">🔢 向量化</option>
+                            <option value="rerank">📊 重排序</option>
+                            <option value="ocr">📄 OCR解析</option>
+                        </select>
+                        <div class="form-hint" id="catHint">类别注册后不可修改</div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">调用模型 ID<span class="required">*</span></label>
+                        <input type="text" class="form-input" id="mModelId" placeholder="如：deepseek-chat" required>
+                        <div class="form-hint">接口实际使用的 model 参数</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">接口地址 Base URL<span class="required">*</span></label>
+                        <input type="text" class="form-input" id="mBaseUrl" placeholder="https://api.example.com/v1" required>
+                        <div class="form-hint">OpenAI 兼容端点根地址</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">API Key</label>
+                    <input type="password" class="form-input" id="mApiKey" placeholder="sk-...">
+                    <div class="form-hint">本地部署模型可能无需鉴权，可留空</div>
+                </div>
+
+                <div class="form-section-title">参数配置</div>
+
+                <!-- 文本类专属 -->
+                <div class="form-row" id="textParams" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label">最大上下文长度</label>
+                        <input type="number" class="form-input" id="mContextLen" placeholder="如：128000">
+                        <div class="form-hint">单位 token，用于上下文压缩阈值</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">单次最大输出</label>
+                        <input type="number" class="form-input" id="mMaxOutput" placeholder="如：4096">
+                        <div class="form-hint">单位 token</div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">超时时间（秒）</label>
+                        <input type="number" class="form-input" id="mTimeout" value="60">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">并发上限</label>
+                        <input type="number" class="form-input" id="mConcurrency" placeholder="如：20">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">输入单价（元/千token）</label>
+                        <input type="number" class="form-input" id="mPriceIn" step="0.0001" placeholder="如：0.001">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">输出单价（元/千token）</label>
+                        <input type="number" class="form-input" id="mPriceOut" step="0.0001" placeholder="如：0.002">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">模型描述</label>
+                    <textarea class="form-textarea" id="mDesc" placeholder="备注模型能力特点"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="mIsDefault" style="width: auto;">
+                        <span style="font-size: 14px;">设为该类别默认模型</span>
+                    </label>
+                    <div class="form-hint">同类别原默认模型将自动取消</div>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="mEnabled" checked style="width: auto;">
+                        <span style="font-size: 14px;">启用该模型</span>
+                    </label>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeModelModal()">取消</button>
+                    <button type="button" class="btn btn-secondary" onclick="testConnection()">🔗 连通性测试</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+
+                <div class="test-result" id="testResult"></div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/common.js"></script>
+    <script>
+        const CATEGORY_META = {
+            chat:      { label: '文本对话', icon: '💬', color: 'linear-gradient(135deg,#667eea,#764ba2)' },
+            vision:    { label: '图片理解', icon: '🖼️', color: 'linear-gradient(135deg,#f093fb,#f5576c)' },
+            embedding: { label: '向量化',   icon: '🔢', color: 'linear-gradient(135deg,#4facfe,#00f2fe)' },
+            rerank:    { label: '重排序',   icon: '📊', color: 'linear-gradient(135deg,#43e97b,#38f9d7)' },
+            ocr:       { label: 'OCR解析',  icon: '📄', color: 'linear-gradient(135deg,#fa709a,#fee140)' }
+        };
+
+        let models = [
+            {
+                id: 1, name: 'DeepSeek-V3', category: 'chat', modelId: 'deepseek-chat',
+                baseUrl: 'https://api.deepseek.com/v1', apiKey: 'sk-***a1b2',
+                contextLen: 128000, maxOutput: 4096, timeout: 60, concurrency: 20,
+                priceIn: 0.001, priceOut: 0.002, desc: '主用对话模型，中文能力强',
+                enabled: true, isDefault: true
+            },
+            {
+                id: 2, name: 'Claude Sonnet 4.5', category: 'chat', modelId: 'claude-sonnet-4-5',
+                baseUrl: 'https://api.anthropic.com/v1', apiKey: 'sk-ant-***c3d4',
+                contextLen: 200000, maxOutput: 8192, timeout: 90, concurrency: 10,
+                priceIn: 0.021, priceOut: 0.105, desc: '复杂推理备用模型',
+                enabled: true, isDefault: false
+            },
+            {
+                id: 3, name: 'BGE-M3', category: 'embedding', modelId: 'bge-m3',
+                baseUrl: 'http://localhost:8000/v1', apiKey: '',
+                timeout: 30, concurrency: 32,
+                desc: '本地部署向量模型，免费，维度由配置文件控制',
+                enabled: true, isDefault: true
+            },
+            {
+                id: 4, name: 'text-embedding-3-large', category: 'embedding', modelId: 'text-embedding-3-large',
+                baseUrl: 'https://api.openai.com/v1', apiKey: 'sk-***e5f6',
+                timeout: 60, concurrency: 10, priceIn: 0.00013,
+                desc: 'OpenAI 向量模型，效果较优',
+                enabled: true, isDefault: false
+            },
+            {
+                id: 5, name: 'BGE-Reranker-v2', category: 'rerank', modelId: 'bge-reranker-v2-m3',
+                baseUrl: 'http://localhost:8001/v1', apiKey: '',
+                timeout: 30, concurrency: 16, desc: '本地重排序模型',
+                enabled: true, isDefault: true
+            },
+            {
+                id: 6, name: 'GPT-4o Vision', category: 'vision', modelId: 'gpt-4o',
+                baseUrl: 'https://api.openai.com/v1', apiKey: 'sk-***g7h8',
+                contextLen: 128000, maxOutput: 4096, timeout: 90, concurrency: 5,
+                priceIn: 0.0175, priceOut: 0.07, desc: '图片理解模型',
+                enabled: false, isDefault: true
+            },
+            {
+                id: 7, name: 'PaddleOCR', category: 'ocr', modelId: 'paddleocr',
+                baseUrl: 'http://localhost:8002/v1', apiKey: '',
+                timeout: 120, concurrency: 8, desc: '本地 OCR 解析模型',
+                enabled: true, isDefault: true
+            }
+        ];
+
+        let activeCategory = 'all';
+        let editingModelId = null;
+        let nextId = 8;
+
+        // ===== 渲染 =====
+        function updateCounts() {
+            document.getElementById('countAll').textContent = models.length;
+            ['chat', 'vision', 'embedding', 'rerank', 'ocr'].forEach(cat => {
+                const el = document.getElementById('count' + cat.charAt(0).toUpperCase() + cat.slice(1));
+                if (el) el.textContent = models.filter(m => m.category === cat).length;
+            });
+        }
+
+        function renderModels() {
+            const grid = document.getElementById('modelGrid');
+            const keyword = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+
+            let list = models;
+            if (activeCategory !== 'all') {
+                list = list.filter(m => m.category === activeCategory);
+            }
+            if (keyword) {
+                list = list.filter(m =>
+                    m.name.toLowerCase().includes(keyword) ||
+                    m.modelId.toLowerCase().includes(keyword)
+                );
+            }
+
+            updateCounts();
+
+            if (list.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1/-1;">
+                        <div class="empty-icon">🧠</div>
+                        <div style="font-size: 16px; margin-bottom: 8px;">暂无模型</div>
+                        <div style="font-size: 13px;">点击右上角「注册模型」添加第一个模型</div>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = list.map(m => {
+                const meta = CATEGORY_META[m.category];
+                return `
+                    <div class="model-card ${m.enabled ? '' : 'disabled'}">
+                        <div class="model-card-head">
+                            <div class="model-name-wrap">
+                                <div class="model-icon" style="background:${meta.color};">${meta.icon}</div>
+                                <div>
+                                    <div class="model-name">${m.name}</div>
+                                    <div class="model-id">${m.modelId}</div>
+                                </div>
+                            </div>
+                            <div class="model-badges">
+                                ${m.isDefault ? '<span class="badge badge-default">默认</span>' : ''}
+                                <span class="badge ${m.enabled ? 'badge-enabled' : 'badge-disabled'}">
+                                    ${m.enabled ? '已启用' : '已禁用'}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="model-info">
+                            <div class="info-row">
+                                <span class="info-label">类别</span>
+                                <span class="info-value">${meta.label}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">接口地址</span>
+                                <span class="info-value">${m.baseUrl}</span>
+                            </div>
+                            ${m.contextLen ? `
+                            <div class="info-row">
+                                <span class="info-label">上下文</span>
+                                <span class="info-value">${m.contextLen.toLocaleString()} tokens</span>
+                            </div>` : ''}
+                            ${m.desc ? `
+                            <div class="info-row">
+                                <span class="info-label">描述</span>
+                                <span class="info-value" style="font-family:inherit;">${m.desc}</span>
+                            </div>` : ''}
+                        </div>
+
+                        <div class="model-actions">
+                            <button class="btn btn-sm btn-outline" onclick="testExistingModel(${m.id})">测试</button>
+                            <button class="btn btn-sm btn-outline" onclick="toggleEnabled(${m.id})">
+                                ${m.enabled ? '禁用' : '启用'}
+                            </button>
+                            <button class="btn btn-sm btn-outline" onclick="openEditModal(${m.id})">编辑</button>
+                            <button class="btn btn-sm btn-outline" onclick="deleteModel(${m.id})">删除</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function switchCategory(cat, btn) {
+            activeCategory = cat;
+            document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            renderModels();
+        }
+
+        // ===== 注册 / 编辑 =====
+        function onCategoryChange() {
+            const cat = document.getElementById('mCategory').value;
+            const textParams = document.getElementById('textParams');
+            textParams.style.display = (cat === 'chat' || cat === 'vision') ? 'grid' : 'none';
+        }
+
+        function openRegisterModal() {
+            editingModelId = null;
+            document.getElementById('modalTitle').textContent = '注册模型';
+            document.querySelector('#modelModal form').reset();
+            document.getElementById('mTimeout').value = 60;
+            document.getElementById('mEnabled').checked = true;
+            document.getElementById('mCategory').disabled = false;
+            document.getElementById('catHint').textContent = '类别注册后不可修改';
+            document.getElementById('textParams').style.display = 'none';
+            document.getElementById('testResult').innerHTML = '';
+            document.getElementById('modelModal').classList.add('active');
+        }
+
+        function openEditModal(id) {
+            const m = models.find(x => x.id === id);
+            if (!m) return;
+
+            editingModelId = id;
+            document.getElementById('modalTitle').textContent = '编辑模型';
+            document.getElementById('mName').value = m.name;
+            document.getElementById('mCategory').value = m.category;
+            document.getElementById('mCategory').disabled = true;
+            document.getElementById('catHint').textContent = '类别注册后不可修改';
+            document.getElementById('mModelId').value = m.modelId;
+            document.getElementById('mBaseUrl').value = m.baseUrl;
+            document.getElementById('mApiKey').value = m.apiKey || '';
+            document.getElementById('mContextLen').value = m.contextLen || '';
+            document.getElementById('mMaxOutput').value = m.maxOutput || '';
+            document.getElementById('mTimeout').value = m.timeout || 60;
+            document.getElementById('mConcurrency').value = m.concurrency || '';
+            document.getElementById('mPriceIn').value = m.priceIn || '';
+            document.getElementById('mPriceOut').value = m.priceOut || '';
+            document.getElementById('mDesc').value = m.desc || '';
+            document.getElementById('mIsDefault').checked = !!m.isDefault;
+            document.getElementById('mEnabled').checked = !!m.enabled;
+            document.getElementById('testResult').innerHTML = '';
+
+            onCategoryChange();
+            document.getElementById('modelModal').classList.add('active');
+        }
+
+        function closeModelModal() {
+            document.getElementById('modelModal').classList.remove('active');
+            editingModelId = null;
+        }
+
+        async function saveModel(event) {
+            event.preventDefault();
+
+            const cat = document.getElementById('mCategory').value;
+            const modelId = document.getElementById('mModelId').value.trim();
+            const baseUrl = document.getElementById('mBaseUrl').value.trim();
+
+            // 同类别下 modelId + baseUrl 不可重复
+            const dup = models.find(m =>
+                m.category === cat &&
+                m.modelId === modelId &&
+                m.baseUrl === baseUrl &&
+                m.id !== editingModelId
+            );
+            if (dup) {
+                showToast(`该类别下已存在相同模型「${dup.name}」`, 'error');
+                return;
+            }
+
+            const isDefault = document.getElementById('mIsDefault').checked;
+
+            showToast('正在保存...', 'info');
+            await delay(600);
+
+            if (editingModelId) {
+                const m = models.find(x => x.id === editingModelId);
+                m.name = document.getElementById('mName').value;
+                m.modelId = modelId;
+                m.baseUrl = baseUrl;
+                m.apiKey = document.getElementById('mApiKey').value;
+                m.contextLen = parseInt(document.getElementById('mContextLen').value) || null;
+                m.maxOutput = parseInt(document.getElementById('mMaxOutput').value) || null;
+                m.timeout = parseInt(document.getElementById('mTimeout').value) || 60;
+                m.concurrency = parseInt(document.getElementById('mConcurrency').value) || null;
+                m.priceIn = parseFloat(document.getElementById('mPriceIn').value) || null;
+                m.priceOut = parseFloat(document.getElementById('mPriceOut').value) || null;
+                m.desc = document.getElementById('mDesc').value;
+                m.enabled = document.getElementById('mEnabled').checked;
+
+                if (isDefault && !m.isDefault) {
+                    clearDefaultInCategory(m.category);
+                    m.isDefault = true;
+                }
+                showToast('模型更新成功', 'success');
+            } else {
+                if (isDefault) clearDefaultInCategory(cat);
+                models.push({
+                    id: nextId++,
+                    name: document.getElementById('mName').value,
+                    category: cat,
+                    modelId: modelId,
+                    baseUrl: baseUrl,
+                    apiKey: document.getElementById('mApiKey').value,
+                    contextLen: parseInt(document.getElementById('mContextLen').value) || null,
+                    maxOutput: parseInt(document.getElementById('mMaxOutput').value) || null,
+                    timeout: parseInt(document.getElementById('mTimeout').value) || 60,
+                    concurrency: parseInt(document.getElementById('mConcurrency').value) || null,
+                    priceIn: parseFloat(document.getElementById('mPriceIn').value) || null,
+                    priceOut: parseFloat(document.getElementById('mPriceOut').value) || null,
+                    desc: document.getElementById('mDesc').value,
+                    enabled: document.getElementById('mEnabled').checked,
+                    isDefault: isDefault
+                });
+                showToast('模型注册成功', 'success');
+            }
+
+            closeModelModal();
+            renderModels();
+        }
+
+        function clearDefaultInCategory(cat) {
+            models.filter(m => m.category === cat).forEach(m => m.isDefault = false);
+        }
+
+        // ===== 操作 =====
+        function toggleEnabled(id) {
+            const m = models.find(x => x.id === id);
+            if (!m) return;
+
+            if (m.enabled) {
+                // 禁用前检查是否为默认
+                if (m.isDefault) {
+                    showToast('该模型是当前类别默认模型，请先更换默认模型后再禁用', 'error');
+                    return;
+                }
+                showConfirm(`确定要禁用「${m.name}」吗？禁用后将不参与任何调用。`, () => {
+                    m.enabled = false;
+                    renderModels();
+                    showToast('已禁用', 'success');
+                });
+            } else {
+                m.enabled = true;
+                renderModels();
+                showToast('已启用', 'success');
+            }
+        }
+
+        function deleteModel(id) {
+            const m = models.find(x => x.id === id);
+            if (!m) return;
+
+            // 删除保护：默认模型不可删
+            if (m.isDefault) {
+                showToast('该模型是当前类别默认模型，请先更换默认模型后再删除', 'error');
+                return;
+            }
+
+            // 删除保护：被知识库引用（模拟检查）
+            const referencedBy = models.filter(x => x.id === id && ['embedding','rerank'].includes(x.category)).length;
+            if (referencedBy > 0) {
+                showToast('该模型正被知识库使用，无法删除。请先在知识库中更换模型', 'error');
+                return;
+            }
+
+            showConfirm(`确定要删除「${m.name}」吗？此操作不可恢复。`, () => {
+                models = models.filter(x => x.id !== id);
+                renderModels();
+                showToast('模型已删除', 'success');
+            });
+        }
+
+        // ===== 连通性测试 =====
+        async function testConnection() {
+            const cat = document.getElementById('mCategory').value;
+            const baseUrl = document.getElementById('mBaseUrl').value.trim();
+            const modelId = document.getElementById('mModelId').value.trim();
+
+            if (!cat || !baseUrl || !modelId) {
+                showToast('请先填写类别、调用模型 ID 和接口地址', 'error');
+                return;
+            }
+
+            const result = document.getElementById('testResult');
+            result.innerHTML = `
+                <div class="test-item test-loading">
+                    <span>⏳</span>
+                    <span>正在测试连通性...</span>
+                </div>
+            `;
+
+            await delay(1400);
+
+            // 模拟：接口地址含 localhost 且端口为 8001/8002 时判定失败（演示分层错误）
+            const isLocalFail = baseUrl.includes(':8001') || baseUrl.includes(':8002');
+            const isHttpsOk = baseUrl.startsWith('https://');
+
+            if (isLocalFail) {
+                result.innerHTML = `
+                    <div class="test-item test-fail">
+                        <span>❌</span>
+                        <span>无法连接到接口地址</span>
+                        <span class="test-detail">请检查 Base URL 与网络</span>
+                    </div>
+                `;
+                return;
+            }
+
+            if (!isHttpsOk && !baseUrl.includes('localhost')) {
+                result.innerHTML = `
+                    <div class="test-item test-fail">
+                        <span>❌</span>
+                        <span>接口路径不存在</span>
+                        <span class="test-detail">请确认是否为 OpenAI 兼容端点</span>
+                    </div>
+                `;
+                return;
+            }
+
+            const latency = Math.floor(Math.random() * 400) + 120;
+            const firstToken = Math.floor(Math.random() * 200) + 80;
+
+            result.innerHTML = `
+                <div class="test-item test-ok">
+                    <span>✅</span><span>接口连通</span>
+                    <span class="test-detail">耗时 ${latency}ms</span>
+                </div>
+                <div class="test-item test-ok">
+                    <span>✅</span><span>鉴权通过</span>
+                </div>
+                <div class="test-item test-ok">
+                    <span>✅</span><span>响应格式正确</span>
+                </div>
+                <div class="test-item test-ok">
+                    <span>✅</span><span>模型可用</span>
+                    <span class="test-detail">首字延迟 ${firstToken}ms</span>
+                </div>
+            `;
+            showToast('连通性测试通过', 'success');
+        }
+
+        async function testExistingModel(id) {
+            const m = models.find(x => x.id === id);
+            if (!m) return;
+
+            showToast(`正在测试「${m.name}」...`, 'info');
+            await delay(1200);
+
+            const isLocalFail = m.baseUrl.includes(':8001') || m.baseUrl.includes(':8002');
+            if (isLocalFail) {
+                showToast('测试失败：无法连接到接口地址', 'error');
+                return;
+            }
+            showToast(`测试通过：接口连通，鉴权正常`, 'success');
+        }
+
+        // 点击背景关闭
+        document.getElementById('modelModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModelModal();
+        });
+
+        // 初始化
+        renderModels();
+    </script>
+</body>
+</html>
