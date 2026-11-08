@@ -40,15 +40,23 @@ export interface ValidationErrorItem {
   reason: string;
 }
 
-/** 业务错误码（与后端 app/core/exceptions.py 保持一致） */
+/**
+ * 业务错误码（与后端 app/core/exceptions.py 保持一致）。
+ *
+ * 修改这里时必须同步后端，反之亦然。后端有测试
+ * `test_error_handling.py::TestErrorCodeSegments` 守护码段合法性。
+ */
 export const ErrorCode = {
   SUCCESS: 0,
   VALIDATION_FAILED: 10001,
   INTERNAL_ERROR: 10002,
   RATE_LIMITED: 10003,
-  NOT_FOUND: 10004,
+  /** 接口不存在（路由级 404），与「资源不存在」区分 */
+  ROUTE_NOT_FOUND: 10004,
   UNAUTHORIZED: 11001,
   ACCOUNT_BANNED: 11002,
+  ACCOUNT_NOT_FOUND: 11005,
+  INVALID_CREDENTIAL: 11006,
   PERMISSION_DENIED: 25001,
 } as const;
 

@@ -55,6 +55,40 @@
 12. 不得向前端返回 SQL 详情、堆栈信息、内部路径、密钥等敏感信息。
 13. 代码注释应简洁、准确，重点说明业务意图、复杂逻辑和关键设计原因，避免冗余注释。
 
+## 5.1 ORM 模型规则
+
+> 适用范围：所有需要访问数据库的业务模块开发（M01~M17）。
+
+1. **模型先行**：每个模块开工时，**第一件事**是写该模块的 ORM 模型，差异归零后再写业务代码。
+   不得先写裸 SQL 查询、事后再补模型。
+
+2. **模型位置**：定义在 `backend/app/modules/<module>/models.py`。
+   `backend/app/db/models/__init__.py` **只做聚合导入**，让 Alembic 能发现全部模型，不在此定义任何模型。
+
+3. **差异归零才算完成**：写完后必须运行
+
+   ```bash
+   cd backend && uv run python scripts/check_model_drift.py --module <module>
+   ```
+
+   输出 `[OK] model matches database DDL` 才可继续写业务代码。
+   有差异时按以下原则处理：
+   - 「库中有、模型中没有」→ 补模型，**不得修改 DDL**
+   - 「模型有、库中没有」→ 先确认是否为设计变更，是则生成新迁移
+   - 类型/默认值不一致 → 以 `docs/design/03.数据库设计.md` 为准
+
+4. **不一次性写全**：43 张表按模块节奏推进，不做「提前把全部模型写完」。
+   未被业务代码验证的模型容易返工。
+
+5. **模型的硬约束**（与 `docs/rules/database-rules.md` 一致）：
+   - 继承 `app.db.base.BaseModel`（提供 UUID 主键 + `created_at`/`updated_at`）
+   - **禁止物理外键**：不得使用 `ForeignKey`，不得声明带外键参数的 `relationship()`
+   - 表间关系用逻辑关联字段（如 `user_id`）表达，完整性由应用层维护
+   - 一张表一个类，`__tablename__` 用 `snake_case` 单数形式
+
+6. **迁移只做增量**：初始建表已由 M0-T13 完成。后续表结构变更一律
+   `alembic revision --autogenerate`，不得直接改历史迁移文件。
+
 # 6.React + TypeScript + Ant Design 6 前端项目开发规范
 1. 前端技术栈：React + TypeScript + Ant Design 6；C 端使用 Next.js ，B 端使用 Vite SPA。
 2. 组件开发优先采用函数组件 + Hooks，避免使用类组件；状态逻辑优先抽取为自定义 Hook。

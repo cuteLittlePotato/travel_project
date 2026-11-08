@@ -11,10 +11,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.middleware.logging import RequestContextMiddleware
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.error_handlers import register_exception_handlers
-from app.core.logging import RequestContextMiddleware, setup_logging
+from app.core.logging import setup_logging
 from app.db.session import dispose_engine
 from app.infra.clients import close_all
 from app.infra.redis import close_redis
@@ -22,7 +23,12 @@ from app.infra.redis import close_redis
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    setup_logging(settings.log_level, settings.log_json)
+    # 生产环境强制不低于 INFO：DEBUG 会打印 SQL 参数与请求细节
+    setup_logging(
+        settings.log_level,
+        settings.log_json,
+        force_info=settings.app_env == "production",
+    )
     yield
     await close_redis()
     await close_all()
@@ -50,7 +56,8 @@ def create_app() -> FastAPI:
         )
 
     register_exception_handlers(app)
-    app.include_router(api_router, prefix="/api")
+    # api_prefix 已含 /api 与版本段，此处不能再加前缀，否则会拼成 /api/api/v1
+    app.include_router(api_router)
 
     return app
 

@@ -7,17 +7,22 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+#: backend/ 目录。用绝对路径定位 .env，避免受启动时工作目录影响
+#: （从项目根目录跑 pytest 时，相对路径 `.env` 会指向错误位置）
+_BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
     """全局配置。字段按依赖的外部服务分组。"""
 
     model_config = SettingsConfigDict(
-        env_file=(".env", "../.env"),
+        env_file=(str(_BACKEND_DIR / ".env"), str(_BACKEND_DIR.parent / ".env")),
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
@@ -29,6 +34,7 @@ class Settings(BaseSettings):
     app_debug: bool = False
     api_host: str = "0.0.0.0"
     api_port: int = Field(default=8000, ge=1, le=65535)
+    #: API 前缀，含 /api 与版本段。路由层统一引用，禁止硬编码
     api_prefix: str = "/api/v1"
     # 逗号分隔，避免 pydantic-settings 对 list 字段强制 JSON 解析
     cors_origins_raw: str = Field(default="", alias="CORS_ORIGINS")
@@ -62,6 +68,12 @@ class Settings(BaseSettings):
     redis_db_business: int = 0  # 业务库
     redis_db_langfuse: int = 1  # 被 Langfuse 占用，业务代码禁止访问
     redis_max_connections: int = Field(default=50, ge=1)
+    redis_connect_timeout: float = Field(default=3.0, gt=0, description="建连超时（秒）")
+    redis_socket_timeout: float = Field(default=3.0, gt=0, description="读写超时（秒）")
+    redis_health_check_interval: int = Field(default=30, ge=0, description="连接健康检查间隔（秒）")
+    redis_retry_attempts: int = Field(default=3, ge=1, description="命令失败重试次数")
+    redis_retry_backoff_base: float = Field(default=0.1, gt=0, description="重试退避基数（秒）")
+    redis_key_prefix: str = "travel"
 
     # ---------- Milvus ----------
     milvus_host: str = "127.0.0.1"
@@ -79,6 +91,8 @@ class Settings(BaseSettings):
     # 逗号分隔的地址列表，如 http://host:9200
     es_hosts_raw: str = Field(default="http://127.0.0.1:9200", alias="ES_HOSTS")
     es_index_prefix: str = "travel"
+    es_request_timeout: float = Field(default=10.0, gt=0, description="请求超时（秒）")
+    es_max_retries: int = Field(default=3, ge=0, description="客户端重试次数")
 
     # ---------- MinIO ----------
     minio_endpoint: str = "127.0.0.1:9000"
@@ -94,9 +108,24 @@ class Settings(BaseSettings):
     rabbitmq_user: str = "travel"
     rabbitmq_password: str = Field(min_length=1)
     rabbitmq_vhost: str = "/"
-    celery_task_time_limit: int = Field(default=300, ge=1)
-    celery_task_soft_time_limit: int = Field(default=240, ge=1)
+    # ---------- Celery ----------
+    celery_worker_concurrency: int = Field(default=4, ge=1)
+    celery_task_time_limit: int = Field(default=300, ge=1, description="硬超时（秒）")
+    celery_task_soft_time_limit: int = Field(default=240, ge=1, description="软超时（秒）")
     celery_max_retries: int = Field(default=3, ge=0)
+    celery_retry_backoff: bool = Field(default=True, description="指数退避")
+    celery_retry_backoff_max: int = Field(default=600, ge=1, description="退避上限（秒）")
+    celery_retry_jitter: bool = True
+    celery_result_expires: int = Field(default=3600, ge=60, description="结果保留（秒）")
+    celery_default_queue: str = "default"
+    #: 本地开发队列。本地 worker 与测试服务器容器共用同一 RabbitMQ，
+    #: 若用同名队列会互相抢消息（表现为 NotRegistered 或结果丢失）。
+    #: 设为非空时，本地投递的任务走该队列，与服务器隔离。
+    celery_local_queue: str = ""
+    celery_broker_connection_retry_on_startup: bool = True
+    celery_broker_connection_max_retries: int = Field(
+        default=100, ge=0, description="Broker 断连重试次数，0 表示无限"
+    )
 
     # ---------- LiteLLM ----------
     litellm_base_url: str = "http://127.0.0.1:4000"
@@ -106,6 +135,32 @@ class Settings(BaseSettings):
     langfuse_host: str = "http://127.0.0.1:3000"
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""
+
+    # ---------- 地图 ----------
+    # 需求 §2.1.4：call_map_api 为占位工具，真实服务商尚未确定，
+    # 此处只保留地址/密钥/开关，对接时填 .env 即可，不改代码。
+    map_enabled: bool = False
+    map_base_url: str = ""
+    map_api_key: str = ""
+    map_timeout_seconds: int = Field(default=5, ge=1)
+
+    # ---------- 短信 ----------
+    # 需求 §2.1.1：验证码短信；开发期可用 Mock（enabled=false 时走 Mock 通道）
+    sms_enabled: bool = False
+    sms_base_url: str = ""
+    sms_api_key: str = ""
+    sms_sign_name: str = ""
+    sms_timeout_seconds: int = Field(default=5, ge=1)
+
+    # ---------- 邮件 ----------
+    # M01-T03：邮件验证码
+    email_enabled: bool = False
+    email_smtp_host: str = ""
+    email_smtp_port: int = Field(default=465, ge=1, le=65535)
+    email_smtp_user: str = ""
+    email_smtp_password: str = ""
+    email_from: str = ""
+    email_use_ssl: bool = True
 
     # ---------- 日志 ----------
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
@@ -147,6 +202,15 @@ class Settings(BaseSettings):
     def celery_result_backend(self) -> str:
         auth = f":{self.redis_password}@" if self.redis_password else ""
         return f"redis://{auth}{self.redis_host}:{self.redis_port}/{self.redis_db_business}"
+
+    @property
+    def celery_effective_queue(self) -> str:
+        """实际使用的默认队列。
+
+        本地开发时把 ``CELERY_LOCAL_QUEUE`` 设为 ``local``，
+        可避免与测试服务器上的容器 worker 抢同一批消息。
+        """
+        return self.celery_local_queue or self.celery_default_queue
 
 
 @lru_cache(maxsize=1)

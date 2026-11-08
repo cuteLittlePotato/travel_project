@@ -23,13 +23,18 @@ services:
     restart: unless-stopped
     env_file: .env.app
     environment:
+      # 容器内互访必须用容器端口，不能用宿主机映射端口（15432 等）
       POSTGRES_HOST: travel-postgres
+      POSTGRES_PORT: "5432"
       REDIS_HOST: travel-redis
+      REDIS_PORT: "6379"
       NEO4J_URI: bolt://travel-neo4j:7687
       MILVUS_HOST: travel-milvus
+      MILVUS_PORT: "19530"
       ES_HOSTS: http://travel-elasticsearch:9200
       MINIO_ENDPOINT: travel-minio:9000
       RABBITMQ_HOST: travel-rabbitmq
+      RABBITMQ_PORT: "5672"
       LITELLM_BASE_URL: http://travel-litellm:4000
       LANGFUSE_HOST: http://travel-langfuse:3000
     ports:
@@ -60,13 +65,18 @@ services:
       start_period: 30s
     env_file: .env.app
     environment:
+      # 容器内互访必须用容器端口，不能用宿主机映射端口（15432 等）
       POSTGRES_HOST: travel-postgres
+      POSTGRES_PORT: "5432"
       REDIS_HOST: travel-redis
+      REDIS_PORT: "6379"
       NEO4J_URI: bolt://travel-neo4j:7687
       MILVUS_HOST: travel-milvus
+      MILVUS_PORT: "19530"
       ES_HOSTS: http://travel-elasticsearch:9200
       MINIO_ENDPOINT: travel-minio:9000
       RABBITMQ_HOST: travel-rabbitmq
+      RABBITMQ_PORT: "5672"
       LITELLM_BASE_URL: http://travel-litellm:4000
       LANGFUSE_HOST: http://travel-langfuse:3000
     networks: [travel_net]
@@ -92,8 +102,11 @@ services:
     env_file: .env.app
     environment:
       POSTGRES_HOST: travel-postgres
+      POSTGRES_PORT: "5432"
       REDIS_HOST: travel-redis
+      REDIS_PORT: "6379"
       RABBITMQ_HOST: travel-rabbitmq
+      RABBITMQ_PORT: "5672"
     networks: [travel_net]
     depends_on:
       travel-api:

@@ -3,7 +3,7 @@
  *
  * 菜单与需求文档的 B 端功能一一对应，新增页面在此登记。
  */
-import { Layout, Menu, Avatar, Dropdown, Space, Typography } from 'antd';
+import { Layout, Menu, Avatar, Breadcrumb, Dropdown, Space, Typography } from 'antd';
 import {
   AppstoreOutlined,
   DashboardOutlined,
@@ -40,8 +40,14 @@ export function AdminLayout() {
   const location = useLocation();
   const { admin, clear } = useAdminAuthStore();
 
-  const selectedKey =
-    MENU_ITEMS.find((item) => location.pathname.startsWith(item.key))?.key ?? '/dashboard';
+  const currentItem = MENU_ITEMS.find((item) => location.pathname.startsWith(item.key));
+  const selectedKey = currentItem?.key ?? '/dashboard';
+
+  // 面包屑：首页 > 当前菜单
+  const breadcrumbItems = [
+    { title: '首页' },
+    ...(currentItem ? [{ title: currentItem.label }] : []),
+  ];
 
   const handleLogout = () => {
     clear();
@@ -96,8 +102,11 @@ export function AdminLayout() {
           </Dropdown>
         </Header>
 
-        <Content style={{ margin: 24, background: '#fff', borderRadius: 8, padding: 24 }}>
-          <Outlet />
+        <Content style={{ margin: 24 }}>
+          <Breadcrumb items={breadcrumbItems} style={{ marginBottom: 16 }} />
+          <div style={{ background: '#fff', borderRadius: 8, padding: 24 }}>
+            <Outlet />
+          </div>
         </Content>
       </Layout>
     </Layout>

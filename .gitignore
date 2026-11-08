@@ -38,6 +38,12 @@ pnpm-debug.log*
 htmlcov/
 .coverage
 
+# 生成产物
+backend/openapi.json
+# 注意：api-generated.d.ts **不忽略**。仓库里保留一份空占位版本，
+# 使新人克隆后 tsc 能通过；执行 gen:api 后内容被真实 schema 覆盖。
+# 该文件在 .gitattributes 中标记为 linguist-generated。
+
 # OS
 .DS_Store
 Thumbs.db
