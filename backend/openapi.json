@@ -1,56 +1,56 @@
 {
-  "openapi": "3.1.0",
   "info": {
     "title": "云游坊 API",
     "version": "1.0.0"
   },
+  "openapi": "3.1.0",
   "paths": {
     "/api/health": {
       "get": {
-        "tags": [
-          "系统"
-        ],
-        "summary": "存活探针",
-        "description": "仅判断进程存活，不探测外部依赖，避免级联失败。",
+        "description": "仅判断进程存活，不探测外部依赖。",
         "operationId": "health_api_health_get",
         "responses": {
           "200": {
-            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
                   "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Health Api Health Get"
+                  "title": "Response Health Api Health Get",
+                  "type": "object"
                 }
               }
-            }
+            },
+            "description": "Successful Response"
           }
-        }
+        },
+        "summary": "存活探针",
+        "tags": [
+          "系统"
+        ]
       }
     },
     "/api/health/ready": {
       "get": {
-        "tags": [
-          "系统"
-        ],
-        "summary": "就绪探针",
-        "description": "探测全部依赖，任一不可用则返回 degraded。",
+        "description": "探测全部依赖，任一不可用则标记 degraded，但始终返回 200。",
         "operationId": "readiness_api_health_ready_get",
         "responses": {
           "200": {
-            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
                   "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Readiness Api Health Ready Get"
+                  "title": "Response Readiness Api Health Ready Get",
+                  "type": "object"
                 }
               }
-            }
+            },
+            "description": "Successful Response"
           }
-        }
+        },
+        "summary": "就绪探针",
+        "tags": [
+          "系统"
+        ]
       }
     }
   }

@@ -13,14 +13,23 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 import app.db.models  # noqa: F401
 from app.core.config import settings
 from app.db.base import Base
+from app.db.migrations.filters import include_object as _include_object
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.alembic_url)
 
-if config.config_file_name is not None:
+# 只在命令行执行迁移时接管日志配置。
+# 应用内或测试中调用 alembic（如集成测试）时，fileConfig 会清空并重置
+# root logger 的 handler，导致后续用例的 caplog 失效。
+# 约定：调用方传入 `configure_logger=False` 即跳过。
+if config.config_file_name is not None and config.attributes.get(
+    "configure_logger", True
+):
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
+
+
 
 
 def run_migrations_offline() -> None:
@@ -30,6 +39,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
+        include_object=_include_object,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -41,6 +51,7 @@ def _do_run_migrations(connection: object) -> None:
         target_metadata=target_metadata,
         compare_type=True,
         include_schemas=False,
+        include_object=_include_object,
     )
     with context.begin_transaction():
         context.run_migrations()

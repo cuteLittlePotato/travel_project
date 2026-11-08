@@ -46,8 +46,18 @@ ignore = ["E501", "RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.lint.per-file-ignores]
 "backend/app/db/migrations/versions/*" = ["E", "F", "I", "UP"]
+# FastAPI 的依赖注入要求 Depends() 写在参数默认值里，B008 在此场景为误报。
+# 对所有 Python 文件生效：项目内任何 FastAPI 端点或测试桩都会用到该写法。
+"backend/**/*.py" = ["B008"]
 
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]
 asyncio_mode = "auto"
+# asyncpg 连接池与事件循环绑定，整个测试会话复用同一个 loop
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 pythonpath = ["backend"]
+filterwarnings = ["ignore::DeprecationWarning:starlette.testclient"]
+markers = [
+    "integration: 需要真实外部服务（PostgreSQL 等），无配置时自动跳过",
+]

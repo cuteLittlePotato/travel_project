@@ -1,0 +1,8 @@
+# 生成产物标记：GitHub / IDE 会折叠这些文件的 diff，代码审查时聚焦真实变更
+frontend/*/src/types/api-generated.d.ts linguist-generated=true
+backend/openapi.json linguist-generated=true
+
+# 统一换行符，避免 Windows 与 Linux 协作时整文件 diff
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf

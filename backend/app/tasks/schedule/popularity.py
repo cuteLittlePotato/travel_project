@@ -16,11 +16,15 @@ from app.tasks.celery_app import celery_app
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(base=BaseTask, bind=True, name="app.tasks.schedule.popularity.recalculate_popularity")
+@celery_app.task(
+    base=BaseTask,
+    bind=True,
+    name="app.tasks.schedule.popularity.recalculate_popularity",
+)
 def recalculate_popularity(self) -> dict[str, int]:
     """每小时重算景点热度。幂等：重复执行结果一致。"""
-    logger.info("热度计算任务开始 task_id=%s", self.request.id)
+    logger.info("热度计算开始 task_id=%s", self.request.id)
     # TODO(M11-T10): 聚合 user_event → 调用 popularity_algorithm → 写 popularity_stat
     updated = 0
-    logger.info("热度计算任务完成 task_id=%s updated=%s", self.request.id, updated)
+    logger.info("热度计算完成 task_id=%s updated=%s", self.request.id, updated)
     return {"updated": updated}

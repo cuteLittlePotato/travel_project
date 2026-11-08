@@ -50,7 +50,11 @@ class TimestampMixin:
     )
 
 
-class BaseModel(Base, UUIDPrimaryKeyMixin, TimestampMixin):
-    """业务表通用基类：UUID 主键 + 创建/更新时间。"""
+class BaseModel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """业务表通用基类：UUID 主键 + 创建/更新时间。
+
+    Mixin 必须排在 ``Base`` 之前，否则 SQLAlchemy 收集列时的解析顺序不符合
+    MRO 约定，多个 Mixin 叠加时容易出现列覆盖问题。
+    """
 
     __abstract__ = True
