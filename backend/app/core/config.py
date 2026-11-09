@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     # ---------- 安全 ----------
     jwt_secret_key: str = Field(min_length=32)
     jwt_algorithm: str = "HS256"
+    #: 模型 API Key 的加密密钥（Fernet，32 字节 base64）。
+    #: 未配置时降级为从 jwt_secret_key 派生——开发环境免配置，
+    #: 生产环境应单独配置，避免 JWT 轮换导致已存密钥全部无法解密。
+    model_api_key_secret: str = ""
     access_token_expire_minutes: int = Field(default=30, ge=1)
     refresh_token_expire_days: int = Field(default=7, ge=1)
     # Refresh Token 存放的 Cookie 属性（评审 §Q1：Access 存内存 + Refresh 存 httpOnly Cookie）
@@ -161,6 +165,20 @@ class Settings(BaseSettings):
     email_smtp_password: str = ""
     email_from: str = ""
     email_use_ssl: bool = True
+
+    # ---------- 第三方登录 ----------
+    # 服务商凭证未申请，只留占位。对接时填 .env 即可，业务代码不改。
+    # 每个 provider 需要 AppID + AppSecret + 回调地址
+    wechat_oauth_enabled: bool = False
+    wechat_oauth_app_id: str = ""
+    wechat_oauth_app_secret: str = ""
+    alipay_oauth_enabled: bool = False
+    alipay_oauth_app_id: str = ""
+    alipay_oauth_app_secret: str = ""
+    weibo_oauth_enabled: bool = False
+    weibo_oauth_app_id: str = ""
+    weibo_oauth_app_secret: str = ""
+    oauth_timeout_seconds: int = Field(default=10, ge=1)
 
     # ---------- 日志 ----------
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"

@@ -80,7 +80,7 @@ def upgrade() -> None:
     op.get_bind().exec_driver_sql('COMMENT ON COLUMN "model_call_log"."error_type" IS \'失败类型：timeout/auth/rate_limit/server_error/format_invalid\'')
     op.create_index("uk_model_category_code", "model", ['category', 'model_code', 'base_url'], unique=True)
     op.create_index("idx_model_category", "model", ['category', 'is_enabled'])
-    op.create_index("idx_model_default", "model", ['category'], unique=True)
+    op.get_bind().exec_driver_sql('CREATE UNIQUE INDEX idx_model_default ON "model" (category) WHERE is_default = TRUE')
     op.execute('CREATE INDEX idx_mcalllog_model_time ON "model_call_log" (model_id, created_at DESC)')
     op.execute('CREATE INDEX idx_mcalllog_user_time ON "model_call_log" (user_id, created_at DESC)')
     op.execute('CREATE INDEX idx_mcalllog_caller ON "model_call_log" (caller_type, created_at DESC)')

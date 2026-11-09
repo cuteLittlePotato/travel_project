@@ -28,6 +28,31 @@ from fastapi.testclient import TestClient  # noqa: E402
 from app.main import create_app  # noqa: E402
 
 
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--run-destructive",
+        action="store_true",
+        default=False,
+        help="执行会清空数据库的测试（标记为 destructive）",
+    )
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """默认跳过 destructive 测试。
+
+    这类测试会 ``DROP SCHEMA public CASCADE``，跑完整个库就空了。
+    开发库同时承载本地联调数据，误执行一次要重新迁移 + 重新灌数，
+    因此必须显式 ``--run-destructive`` 才执行。
+    """
+    if config.getoption("--run-destructive"):
+        return
+
+    skip = pytest.mark.skip(reason="destructive 测试需显式 --run-destructive")
+    for item in items:
+        if "destructive" in item.keywords:
+            item.add_marker(skip)
+
+
 @pytest.fixture(scope="session")
 def client() -> TestClient:
     return TestClient(create_app())

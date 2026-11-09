@@ -13,7 +13,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,13 +53,19 @@ def get_admin_token_version_resolver() -> AdminTokenVersionResolver:
 
 
 async def require_admin(
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(admin_bearer)],
     session: DBSession,
     resolve_version: Annotated[
         AdminTokenVersionResolver, Depends(get_admin_token_version_resolver)
     ],
 ) -> CurrentAdmin:
-    """校验 B 端 Access Token，返回当前管理员。"""
+    """校验 B 端 Access Token，返回当前管理员。
+
+    顺带把 ``admin_id`` 写到 ``request.state``——操作日志中间件
+    （M15-T06）据此知道「这条日志是谁的」。放在这里而不是中间件里
+    解析 Token，是因为依赖已经解过一次，没必要重复解。
+    """
     if credentials is None or not credentials.credentials:
         raise UnauthorizedError()
 
@@ -70,6 +76,10 @@ async def require_admin(
 
     current_version = await resolve_version(session, payload.subject_id)
     verify_token_version(payload, current_version)
+
+    # 供操作日志中间件使用
+    request.state.current_admin_id = payload.subject_id
+    request.state.current_admin_version = payload.token_version
 
     return CurrentAdmin(admin_id=payload.subject_id, token_version=payload.token_version)
 

@@ -8,7 +8,15 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { RequireAdmin } from '@/components/layout/RequireAdmin';
+import ActivitiesPage from '@/pages/Activities';
+import AttractionsPage from '@/pages/Attractions';
+import CategoriesPage from '@/pages/Categories';
+import HotelsPage from '@/pages/Hotels';
+import ModelsPage from '@/pages/Models';
+import RegionsPage from '@/pages/Regions';
 import { LoginPage } from '@/pages/Login';
+import RestaurantsPage from '@/pages/Restaurants';
+import SettingsPage from '@/pages/Settings';
 import { PlaceholderPage } from '@/pages/Placeholder';
 
 export function AppRoutes() {
@@ -21,14 +29,17 @@ export function AppRoutes() {
         <Route element={<AdminLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<PlaceholderPage title="数据看板" />} />
-          <Route path="/attractions" element={<PlaceholderPage title="景点管理" />} />
-          <Route path="/restaurants" element={<PlaceholderPage title="餐厅管理" />} />
-          <Route path="/hotels" element={<PlaceholderPage title="酒店管理" />} />
+          <Route path="/regions" element={<RegionsPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/attractions" element={<AttractionsPage />} />
+          <Route path="/restaurants" element={<RestaurantsPage />} />
+          <Route path="/hotels" element={<HotelsPage />} />
+          <Route path="/activities" element={<ActivitiesPage />} />
           <Route path="/knowledge-base" element={<PlaceholderPage title="RAG 知识库" />} />
           <Route path="/knowledge-graph" element={<PlaceholderPage title="知识图谱" />} />
-          <Route path="/models" element={<PlaceholderPage title="模型管理" />} />
+          <Route path="/models" element={<ModelsPage />} />
           <Route path="/users" element={<PlaceholderPage title="用户管理" />} />
-          <Route path="/settings" element={<PlaceholderPage title="系统设置" />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>
 

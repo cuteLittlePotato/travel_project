@@ -22,6 +22,7 @@ from app.core.config import settings
 #: worker 启动时需扫描的任务模块
 TASK_MODULES = [
     "app.tasks.health",
+    "app.tasks.schedule.partition",
     "app.tasks.schedule.popularity",
 ]
 
@@ -89,6 +90,13 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.schedule.popularity.recalculate_popularity",
         # 每小时第 5 分钟执行，避开整点高峰
         "schedule": crontab(minute=5),
+        "options": {"queue": settings.celery_effective_queue},
+    },
+    # 分区维护每日执行：漏跑一天不会导致下月数据落到 DEFAULT 分区
+    "partition-daily": {
+        "task": "app.tasks.schedule.partition.ensure_monthly_partitions",
+        # 凌晨 3:10，避开业务高峰
+        "schedule": crontab(hour=3, minute=10),
         "options": {"queue": settings.celery_effective_queue},
     },
 }

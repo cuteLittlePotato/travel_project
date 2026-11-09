@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.middleware.audit import OperationLogMiddleware
 from app.api.middleware.logging import RequestContextMiddleware
 from app.api.router import api_router
 from app.core.config import settings
@@ -45,7 +46,12 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # 中间件注册顺序与执行顺序相反：后注册的先执行。
+    # OperationLogMiddleware 需要在 require_admin 写入 admin_id 之后
+    # 才能记录日志，而 admin_id 是由路由依赖写入的，因此它应
+    # 在请求处理链的外层（即先注册）。
     app.add_middleware(RequestContextMiddleware)
+    app.add_middleware(OperationLogMiddleware)
     if settings.cors_origins:
         app.add_middleware(
             CORSMiddleware,

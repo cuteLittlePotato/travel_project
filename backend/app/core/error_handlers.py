@@ -60,6 +60,7 @@ _VALIDATION_MESSAGES: dict[str, str] = {
     "literal_error": "取值不在允许范围内",
     "value_error": "取值不合法",
     "json_invalid": "请求体不是合法的 JSON",
+    "extra_forbidden": "不支持该字段",
 }
 
 
@@ -73,18 +74,32 @@ def _format_field(loc: tuple[Any, ...]) -> str:
     return ".".join(parts) or "__root__"
 
 
+#: 自定义校验（field_validator / model_validator）抛出的错误类型。
+#: 这类错误的 message 由我们自己写，已经是中文，**不能**被类型映射覆盖。
+_CUSTOM_ERROR_TYPES = frozenset({"value_error", "assertion_error"})
+
+
 def _format_reason(item: dict[str, Any]) -> str:
     """把 Pydantic 的英文错误信息转成中文。
 
-    优先用类型映射；``value_error`` 等自定义校验的 message 通常已是中文，直接透传。
+    ``value_error`` 是自定义校验抛出的——message 由业务代码写的
+    （如「结束时间必须晚于开始时间」），必须原样透传；
+    用类型映射覆盖成「取值不合法」会把有用的信息抹掉。
+
+    其余类型（``string_too_short`` / ``missing`` 等）是 Pydantic
+    内置的，message 是英文，走类型映射。
     """
     error_type = str(item.get("type", ""))
-    if error_type in _VALIDATION_MESSAGES:
-        return _VALIDATION_MESSAGES[error_type]
-
     message = str(item.get("msg", "参数不合法"))
+
     # Pydantic 会给自定义错误加 "Value error, " 前缀，去掉更友好
-    return message.removeprefix("Value error, ")
+    message = message.removeprefix("Value error, ")
+
+    if error_type in _CUSTOM_ERROR_TYPES:
+        return message
+
+    # extra_forbidden 等没有中文映射的，也用原始 message（已是可读英文）
+    return _VALIDATION_MESSAGES.get(error_type, message)
 
 
 def format_validation_errors(exc: RequestValidationError) -> list[dict[str, str]]:

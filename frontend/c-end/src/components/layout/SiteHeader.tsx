@@ -11,6 +11,7 @@ import { usePathname } from 'next/navigation';
 import { Avatar, Button, Space } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 
+import { NotificationBell } from '@/components/notification/NotificationBell';
 import { useAuthStore } from '@/stores/auth';
 
 const NAV_ITEMS = [
@@ -64,9 +65,12 @@ export function SiteHeader() {
 
       <Space size={12}>
         {accessToken ? (
-          <Link href="/profile">
-            <Avatar src={user?.avatar_url ?? undefined} icon={<UserOutlined />} />
-          </Link>
+          <>
+            <NotificationBell />
+            <Link href="/profile">
+              <Avatar src={user?.avatar_url ?? undefined} icon={<UserOutlined />} />
+            </Link>
+          </>
         ) : (
           <>
             <Link href="/login">
