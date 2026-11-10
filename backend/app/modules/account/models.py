@@ -192,8 +192,14 @@ class UserProfile(UUIDPrimaryKeyMixin, UpdatedAtMixin, Base):
     companion_type: Mapped[str | None] = mapped_column(String(20))
     #: 偏好季节，如 ["spring", "autumn"]
     preferred_seasons: Mapped[list[str] | None] = mapped_column(JSONB)
-    #: 默认出发城市，用于交通与周边推荐
-    departure_city: Mapped[str | None] = mapped_column(String(50))
+    #: 默认出发城市**编码**（GB/T 2260），用于交通与周边推荐
+    #:
+    #: 存编码而非城市名：名称会因运营在 B 端「省市管理」中改名而失效，
+    #: 编码是稳定标识。与 ``user.region_code`` 保持同一套格式。
+    departure_city_code: Mapped[str | None] = mapped_column(
+        String(20),
+        comment="默认出发城市编码（GB/T 2260），与 user.region_code 同一套格式",
+    )
 
     def __repr__(self) -> str:
         return f"<UserProfile user={self.user_id}>"

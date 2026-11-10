@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react';
 import { App, Checkbox, Form, Input, Modal, Select } from 'antd';
 
+import { RegionCascader } from '@/components/common/RegionCascader';
 import {
   UserApiError,
   updateTravelProfile,
@@ -53,7 +54,7 @@ interface FormValues {
   budget_level?: BudgetLevel;
   companion_type?: CompanionType;
   preferred_seasons: string[];
-  departure_city?: string;
+  departure_city_code?: string;
 }
 
 export interface PreferenceModalProps {
@@ -81,7 +82,7 @@ export function PreferenceModal({
       budget_level: profile.budget_level ?? undefined,
       companion_type: profile.companion_type ?? undefined,
       preferred_seasons: profile.preferred_seasons ?? [],
-      departure_city: profile.departure_city ?? undefined,
+      departure_city_code: profile.departure_city_code ?? undefined,
     });
   }, [open, profile, form]);
 
@@ -102,7 +103,7 @@ export function PreferenceModal({
         budget_level: values.budget_level ?? null,
         companion_type: values.companion_type ?? null,
         preferred_seasons: values.preferred_seasons ?? [],
-        departure_city: values.departure_city?.trim() || null,
+        departure_city_code: values.departure_city_code || null,
       });
       message.success('偏好已更新');
       onSuccess();
@@ -165,11 +166,13 @@ export function PreferenceModal({
         </Form.Item>
 
         <Form.Item
-          name="departure_city"
+          name="departure_city_code"
           label="默认出发城市"
-          rules={[{ max: 50, message: '最多 50 字符' }]}
+          extra="用于推荐交通方式与行程时长"
         >
-          <Input placeholder="如：北京" maxLength={50} />
+          {/* 存城市名（VARCHAR(50)），与库字段一致；
+              用户看到的是「浙江省 / 杭州市」这样的名称，不用手打 */}
+          <RegionCascader placeholder="选择出发城市" />
         </Form.Item>
       </Form>
     </Modal>

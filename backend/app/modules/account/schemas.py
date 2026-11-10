@@ -103,7 +103,8 @@ class RegisterRequest(BaseModel):
         max_length=VERIFY_CODE_LENGTH,
         description="6 位数字验证码",
     )
-    password: str = Field(min_length=8, max_length=32, description="8-32 位，含字母与数字")
+    #: **注册不设密码**（需求 2.1.1 只要求验证码注册）。
+    #: 用户可在「个人中心 → 修改密码」中设置密码，之后即可用密码登录。
     nickname: str | None = Field(
         default=None, max_length=NICKNAME_MAX_LENGTH, description="昵称，默认取 target 前缀"
     )
@@ -119,11 +120,6 @@ class RegisterRequest(BaseModel):
         if not v.isdigit():
             raise ValueError("验证码必须为数字")
         return v
-
-    @field_validator("password")
-    @classmethod
-    def _check_password(cls, v: str) -> str:
-        return _validate_password(v)
 
     @field_validator("nickname")
     @classmethod
@@ -366,7 +362,11 @@ class TravelProfileResponse(BaseModel):
     budget_level: BudgetLevel | None = None
     companion_type: CompanionType | None = None
     preferred_seasons: list[str] = Field(default_factory=list)
-    departure_city: str | None = None
+    departure_city_code: str | None = Field(
+        default=None,
+        max_length=20,
+        description="出发城市编码（GB/T 2260），如 110100",
+    )
 
 
 def _validate_str_list(value: list[str] | None) -> list[str] | None:
@@ -392,7 +392,12 @@ class UpdateTravelProfileRequest(BaseModel):
     budget_level: BudgetLevel | None = None
     companion_type: CompanionType | None = None
     preferred_seasons: list[str] | None = None
-    departure_city: str | None = Field(default=None, max_length=50)
+    departure_city_code: str | None = Field(
+        default=None,
+        max_length=20,
+        pattern=r"^\d{6}$",
+        description="出发城市编码（6 位数字），与 user.region_code 同一套格式",
+    )
 
     @field_validator("travel_types", "travel_styles")
     @classmethod

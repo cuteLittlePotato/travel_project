@@ -18,6 +18,28 @@ import type { TravelProfile } from '@/services/user';
 
 const mockUpdateTravelProfile = vi.fn();
 
+vi.mock('@/components/common/RegionCascader', () => ({
+  RegionCascader: ({
+    value,
+    onChange,
+    placeholder,
+  }: {
+    value?: string | null;
+    onChange?: (v: string | null) => void;
+    placeholder?: string;
+  }) => (
+    <select
+      aria-label="地区选择器"
+      value={value ?? ''}
+      onChange={(e) => onChange?.(e.target.value || null)}
+    >
+      <option value="">{placeholder ?? '选择'}</option>
+      <option value="110100">北京市</option>
+      <option value="330100">杭州市</option>
+    </select>
+  ),
+}));
+
 vi.mock('@/services/user', async () => {
   const actual = await vi.importActual<typeof import('@/services/user')>(
     '@/services/user',
@@ -34,18 +56,25 @@ const PROFILE: TravelProfile = {
   budget_level: 'economy',
   companion_type: 'solo',
   preferred_seasons: ['春季'],
-  departure_city: null,
+  departure_city_code: null,
+  departure_city_info: null,
 };
 
-function renderModal(onSuccess = vi.fn()) {
+/** 兼容两种调用：传回调（旧用例）或传 profile 覆盖值（新用例） */
+function renderModal(arg?: (() => void) | Partial<TravelProfile>) {
+  const input: (() => void) | Partial<TravelProfile> = arg ?? (() => {});
+  const isProfile = typeof input === 'object';
+  const profile = isProfile ? { ...PROFILE, ...input } : PROFILE;
+  const callback = isProfile ? vi.fn() : input;
+
   return render(
     <ConfigProvider locale={zhCN}>
       <AntdApp>
         <PreferenceModal
           open
-          profile={PROFILE}
+          profile={profile}
           onCancel={vi.fn()}
-          onSuccess={onSuccess}
+          onSuccess={callback}
         />
       </AntdApp>
     </ConfigProvider>,
@@ -85,7 +114,7 @@ describe('PreferenceModal', () => {
     expect(payload).toHaveProperty('budget_level');
     expect(payload).toHaveProperty('companion_type');
     expect(payload).toHaveProperty('preferred_seasons');
-    expect(payload).toHaveProperty('departure_city');
+    expect(payload).toHaveProperty('departure_city_code');
   });
 
   it('保存成功后回调 onSuccess', async () => {
@@ -165,5 +194,45 @@ describe('PreferenceModal', () => {
       });
       expect(onSuccess).not.toHaveBeenCalled();
     });
+  });
+});
+
+
+describe('PreferenceModal —— 默认出发城市', () => {
+  beforeEach(() => {
+    mockUpdateTravelProfile.mockReset();
+  });
+
+  it('**用选择器而非手填**（与常驻地区保持一致，存编码）', () => {
+    renderModal();
+
+    // 不再是 Input，而是地区选择器
+    expect(screen.getByLabelText('地区选择器')).toBeInTheDocument();
+  });
+
+  it('回显已有出发城市', async () => {
+    renderModal({ departure_city_code: '330100' });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('地区选择器')).toHaveValue('330100');
+    });
+  });
+
+  it('选择后提交城市名', async () => {
+    mockUpdateTravelProfile.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    renderModal();
+
+    await user.selectOptions(screen.getByLabelText('地区选择器'), '110100');
+    await user.click(screen.getByRole('button', { name: /保\s*存/ }));
+
+    await waitFor(() => {
+      expect(mockUpdateTravelProfile).toHaveBeenCalled();
+    });
+    const payload = mockUpdateTravelProfile.mock.calls[0]?.[0] as {
+      departure_city_code: string | null;
+    };
+    expect(payload.departure_city_code).toBe('110100');
   });
 });

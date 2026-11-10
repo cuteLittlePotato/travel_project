@@ -118,7 +118,7 @@ async def account(db_ready: None, fake_redis: _FakeRedis) -> Any:
 
     async with SessionLocal() as session:
         result = await service.register(
-            session, target=phone, verify_code_str="123456", password="Passw0rd"
+            session, target=phone, verify_code_str="123456"
         )
 
     yield {"user_id": result.user_id, "access_token": result.access_token}

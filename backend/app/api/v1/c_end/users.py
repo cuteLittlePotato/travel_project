@@ -121,7 +121,7 @@ async def update_travel_profile(
         budget_level=payload.budget_level.value if payload.budget_level else None,
         companion_type=payload.companion_type.value if payload.companion_type else None,
         preferred_seasons=payload.preferred_seasons,
-        departure_city=payload.departure_city,
+        departure_city_code=payload.departure_city_code,
         fields_set=payload.model_fields_set,
     )
     return Response(status_code=status.HTTP_204_NO_CONTENT)

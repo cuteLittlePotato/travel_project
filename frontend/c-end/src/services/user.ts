@@ -54,8 +54,19 @@ export interface TravelProfile {
   budget_level: BudgetLevel | null;
   companion_type: CompanionType | null;
   preferred_seasons: string[];
-  departure_city: string | null;
+  /** 出发城市编码（GB/T 2260），与 user.region_code 同一套格式 */
+  departure_city_code: string | null;
+  /** 后端解析出的城市信息，编码无效时为 null。**仅响应有，提交时不要传** */
+  departure_city_info?: { code: string; name: string } | null;
 }
+
+/**
+ * 更新旅游偏好的请求体。
+ *
+ * 排除 ``departure_city``——它是后端按编码解析出来的展示字段，
+ * 前端提交时不该回传（回传也会被 Pydantic 忽略，但类型上明确排除更清晰）。
+ */
+export type UpdateTravelProfilePayload = Omit<TravelProfile, 'departure_city_info'>;
 
 export interface UserSettings {
   profile_visibility: Visibility;
@@ -139,7 +150,9 @@ export function getTravelProfile(): Promise<TravelProfile> {
  * **整体替换语义**（API §3.12）：未传的字段会被后端清空。
  * 因此调用方必须传完整对象，不能只传想改的字段。
  */
-export async function updateTravelProfile(payload: TravelProfile): Promise<void> {
+export async function updateTravelProfile(
+  payload: UpdateTravelProfilePayload,
+): Promise<void> {
   await unwrap<null>(http.put<ApiResponse<null>>('/api/v1/users/me/profile', payload));
 }
 

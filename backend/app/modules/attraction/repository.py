@@ -19,7 +19,7 @@ import uuid
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import Select, func, select, text
+from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalog.models import (
@@ -73,9 +73,15 @@ class AttractionQueryRepository:
         """
         stmt = select(Attraction).where(Attraction.is_published.is_(True))
 
+        # **Region 只 join 一次**：keyword 与 province_id 都需要它。
+        # 各自 join 会让 SQL 出现 `FROM attraction JOIN region ... JOIN region ...`，
+        # PostgreSQL 直接报「table name "region" specified more than once」——
+        # 而这恰恰是「搜索 + 按省筛选」这种常见组合。
+        if keyword or province_id is not None:
+            stmt = stmt.join(Region, Region.id == Attraction.city_id)
+
         if keyword:
-            # 名称或城市名的模糊匹配
-            stmt = stmt.join(Region, Region.id == Attraction.city_id).where(
+            stmt = stmt.where(
                 Attraction.name.ilike(f"%{keyword}%")
                 | Region.name.ilike(f"%{keyword}%")
             )
@@ -83,9 +89,7 @@ class AttractionQueryRepository:
             stmt = stmt.where(Attraction.city_id == city_id)
         if province_id is not None:
             # 景点挂在市上，省市关系靠 region.parent_id 表达
-            stmt = stmt.join(Region, Region.id == Attraction.city_id).where(
-                Region.parent_id == province_id
-            )
+            stmt = stmt.where(Region.parent_id == province_id)
 
         if category_ids:
             # 且关系：按 attraction_id 分组，命中分类数 == 传入分类数
@@ -116,7 +120,21 @@ class AttractionQueryRepository:
         return list(rows), total
 
     def _apply_sort(self, stmt: Select[Any], *, sort_by: str, sort_order: str) -> Select[Any]:
-        descending = sort_order != "asc"
+        """应用排序。
+
+        ``sort_by`` 不在白名单内**必须报错**——静默回退到 ``created_at``
+        会让用户以为按热度排，实际按创建时间排，且无从察觉。
+        白名单校验在路由层也做一次（Pydantic Query pattern），
+        这里是 Repository 被直接调用时的最后一道防线。
+        """
+        if sort_by not in SUPPORTED_SORT_FIELDS:
+            raise ValueError(
+                f"不支持的排序字段：{sort_by}，可选 {sorted(SUPPORTED_SORT_FIELDS)}"
+            )
+        if sort_order not in ("asc", "desc"):
+            raise ValueError(f"不支持的排序方向：{sort_order}")
+
+        descending = sort_order == "desc"
 
         if sort_by == "popularity":
             # LEFT JOIN + COALESCE：无 popularity_stat 记录时用 base_popularity
@@ -140,18 +158,14 @@ class AttractionQueryRepository:
 
     # ---------------- 批量补全（避免 N+1） ----------------
 
-    async def get_cities(self, city_ids: list[uuid.UUID]) -> dict[uuid.UUID, Region]:
-        if not city_ids:
-            return {}
-        rows = (
-            await self.session.execute(select(Region).where(Region.id.in_(set(city_ids))))
-        ).scalars().all()
-        return {row.id: row for row in rows}
-
-    async def get_parent_regions(
+    async def get_regions_bulk(
         self, region_ids: list[uuid.UUID]
     ) -> dict[uuid.UUID, Region]:
-        """批量取上级省份（详情页需要展示「省 / 市」两级）。"""
+        """按 ID 批量取地区。
+
+        列表页用它补城市名，详情页用它同时补城市与省份——
+        两者需求相同，不必分两个方法。
+        """
         if not region_ids:
             return {}
         rows = (
@@ -263,9 +277,19 @@ class AttractionQueryRepository:
 
     # ---------------- 搜索建议 ----------------
 
-    async def suggest(self, keyword: str, *, limit: int = 10) -> tuple[list[Attraction], list[Region]]:
-        """搜索建议（API §4.9）：景点名 + 城市名各取一批。"""
+    async def suggest(
+        self, keyword: str, *, limit: int = 10
+    ) -> tuple[list[Attraction], list[Region]]:
+        """搜索建议（API §4.9）：景点名 + 地区名各取一批。
+
+        **地区包含省与市**：用户搜「浙江」想找的是整个省，
+        只返回城市会漏掉这类意图。前端用 ``level`` 区分展示。
+
+        排序先按匹配位置（前缀优先），再按热度/权重——
+        搜「北京」时「北京市」应该排在「北京市朝阳区某景点」前面。
+        """
         pattern = f"%{keyword}%"
+        prefix = f"{keyword}%"
 
         attractions = list(
             (
@@ -275,7 +299,12 @@ class AttractionQueryRepository:
                         Attraction.is_published.is_(True),
                         Attraction.name.ilike(pattern),
                     )
-                    .order_by(Attraction.sort_weight.desc(), Attraction.name)
+                    .order_by(
+                        # 前缀匹配优先
+                        Attraction.name.ilike(prefix).desc(),
+                        Attraction.sort_weight.desc(),
+                        Attraction.name,
+                    )
                     .limit(limit)
                 )
             )
@@ -283,12 +312,17 @@ class AttractionQueryRepository:
             .all()
         )
 
-        cities = list(
+        regions = list(
             (
                 await self.session.execute(
                     select(Region)
                     .where(Region.name.ilike(pattern))
-                    .order_by(Region.sort_weight.desc(), Region.name)
+                    .order_by(
+                        Region.name.ilike(prefix).desc(),
+                        Region.level.asc(),  # 省份在前
+                        Region.sort_weight.desc(),
+                        Region.name,
+                    )
                     .limit(limit)
                 )
             )
@@ -296,12 +330,4 @@ class AttractionQueryRepository:
             .all()
         )
 
-        return attractions, cities
-
-
-async def table_exists(session: AsyncSession, table_name: str) -> bool:
-    """检查表是否存在——M10 图谱表可能尚未建立。"""
-    result = await session.execute(
-        text("SELECT to_regclass(:name) IS NOT NULL"), {"name": f"public.{table_name}"}
-    )
-    return bool(result.scalar_one())
+        return attractions, regions

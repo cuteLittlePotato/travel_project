@@ -52,7 +52,7 @@ export interface SendCodePayload {
 export interface RegisterPayload {
   target: string;
   verify_code: string;
-  password: string;
+  /** 注册不设密码（需求 2.1.1），之后可在个人中心设置 */
   nickname?: string;
 }
 

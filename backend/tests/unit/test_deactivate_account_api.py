@@ -288,9 +288,18 @@ class TestDeactivationResult:
 
         assert response.status_code == 401
 
-    async def test_cannot_login_after_deactivation(
+    async def test_original_identifier_no_longer_bound(
         self, client: httpx.AsyncClient, account: dict
     ) -> None:
+        """注销后原手机号/邮箱不再绑定任何账号。
+
+        **这是 2026-11-09 的规则变更**：注销时释放登录标识，
+        允许用户用同一邮箱/手机号重新注册。因此用原标识登录会得到
+        「账号不存在」（11005），而不是「账号已注销」（11007）。
+
+        旧行为（标识永久占用 → 登录返回 11007）会让用户永远
+        无法用这个邮箱注册，且他自己不知道原因。
+        """
         from app.db.session import SessionLocal
 
         # 记录手机号
@@ -311,8 +320,25 @@ class TestDeactivationResult:
                 json={"target": phone, "password": account["password"]},
             )
 
-        assert response.status_code == 403
-        assert response.json()["code"] == ErrorCode.ACCOUNT_DELETED
+        # 标识已释放，系统里找不到这个账号
+        assert response.status_code == 401
+        assert response.json()["code"] == ErrorCode.ACCOUNT_NOT_FOUND
+
+    async def test_deleted_account_record_retained(
+        self, client: httpx.AsyncClient, account: dict
+    ) -> None:
+        """旧账号记录仍在（软删除），只是标识被改写。"""
+        from app.db.session import SessionLocal
+
+        async with client:
+            await _deactivate(client, account["headers"], password=account["password"])
+
+        async with SessionLocal() as session:
+            result = await session.execute(
+                text('SELECT status FROM "user" WHERE id = :id'),
+                {"id": account["id"]},
+            )
+            assert result.scalar_one() == "deleted"
 
     async def test_idempotent(self, client: httpx.AsyncClient, account: dict) -> None:
         """重复注销不报错——用户可能手抖点两次。"""

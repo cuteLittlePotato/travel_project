@@ -76,7 +76,7 @@ class TestTableStructure:
                 {
                     "id", "user_id", "travel_types", "travel_styles",
                     "budget_level", "companion_type", "preferred_seasons",
-                    "departure_city", "updated_at",
+                    "departure_city_code", "updated_at",
                 },
             ),
             (

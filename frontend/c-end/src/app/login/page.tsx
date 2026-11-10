@@ -11,10 +11,20 @@
  * Token 策略（评审 §Q1）：Access Token 存内存（Zustand），
  * Refresh Token 由后端写入 httpOnly Cookie。**不碰 localStorage**。
  */
-import { Suspense, useState } from 'react';
+import { Suspense, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { App, Button, Card, Divider, Form, Input, Segmented, Typography } from 'antd';
+import {
+  App,
+  Button,
+  Card,
+  Divider,
+  Form,
+  Input,
+  Segmented,
+  Typography,
+} from 'antd';
+import type { InputRef } from 'antd';
 import { LockOutlined, MailOutlined } from '@ant-design/icons';
 
 import { OAuthButtons } from '@/components/auth/OAuthButtons';
@@ -69,6 +79,8 @@ function LoginPageContent() {
   const [loading, setLoading] = useState(false);
   const [passwordForm] = Form.useForm<PasswordForm>();
   const [codeForm] = Form.useForm<CodeForm>();
+  //: 验证码登录的账号输入框引用，用于兜底读取浏览器自动填充的值
+  const codeTargetRef = useRef<InputRef>(null);
 
   const redirectTo = searchParams.get('redirect') ?? '/';
 
@@ -101,7 +113,20 @@ function LoginPageContent() {
   };
 
   const handleSendCode = async () => {
-    const target = codeForm.getFieldValue('target') as string | undefined;
+    let target = codeForm.getFieldValue('target') as string | undefined;
+
+    // **浏览器自动填充兜底**：Chrome 等浏览器的 autofill 只设置 DOM 的
+    // value，**不触发 React 的 onChange**，因此 antd Form 的 store 里是空的。
+    // 用户看到输入框里有邮箱，点「获取验证码」却提示「请填写」。
+    // 这里从真实 DOM 读一次，并同步回表单，保证后续提交也能拿到。
+    if (!target) {
+      const domValue = codeTargetRef.current?.input?.value?.trim();
+      if (domValue) {
+        target = domValue;
+        codeForm.setFieldValue('target', domValue);
+      }
+    }
+
     const targetError = getTargetError(target ?? '');
     if (targetError) {
       message.warning(targetError);
@@ -131,8 +156,17 @@ function LoginPageContent() {
           style={{ marginBottom: 24 }}
         />
 
+        {/*
+          **两个 Form 必须有不同的 key**：
+          它们是同一种组件类型，切换 tab 时 React 会复用同一个实例，
+          只更新 `form` prop。而 antd 的 Form 内部 store 绑定在首次
+          挂载时的实例上，复用会导致新 Form 的值仍写进旧 store——
+          表现为「输入框里有值，但 codeForm.getFieldValue() 返回空」。
+          加 key 强制卸载重建，各自绑定自己的 form 实例。
+        */}
         {mode === '密码登录' ? (
           <Form<PasswordForm>
+            key="password-form"
             form={passwordForm}
             layout="vertical"
             requiredMark={false}
@@ -178,6 +212,7 @@ function LoginPageContent() {
           </Form>
         ) : (
           <Form<CodeForm>
+            key="code-form"
             form={codeForm}
             layout="vertical"
             requiredMark={false}
@@ -197,6 +232,7 @@ function LoginPageContent() {
               ]}
             >
               <Input
+                ref={codeTargetRef}
                 prefix={<MailOutlined />}
                 placeholder="请输入手机号或邮箱"
                 size="large"

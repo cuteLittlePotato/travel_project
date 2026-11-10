@@ -121,7 +121,7 @@ async def account(db_ready: None, fake_redis: _FakeRedis) -> Any:
 
     async with SessionLocal() as session:
         result = await service.register(
-            session, target=phone, verify_code_str="123456", password="Passw0rd"
+            session, target=phone, verify_code_str="123456"
         )
 
     yield {"user_id": result.user_id, "access_token": result.access_token}
@@ -159,7 +159,7 @@ class TestGetProfile:
         assert data["budget_level"] is None
         assert data["companion_type"] is None
         assert data["preferred_seasons"] == []
-        assert data["departure_city"] is None
+        assert data["departure_city_code"] is None
 
     async def test_has_all_six_fields(self, client: httpx.AsyncClient, account: dict) -> None:
         response = await client.get(
@@ -171,7 +171,9 @@ class TestGetProfile:
             "budget_level",
             "companion_type",
             "preferred_seasons",
-            "departure_city",
+            # 编码 + 后端解析出的城市信息（前端不该自己维护映射表）
+            "departure_city_code",
+            "departure_city_info",
         }
 
     async def test_requires_auth(self, client: httpx.AsyncClient) -> None:
@@ -192,7 +194,7 @@ class TestUpdateProfile:
             "budget_level": "moderate",
             "companion_type": "family",
             "preferred_seasons": ["春季", "秋季"],
-            "departure_city": "北京",
+            "departure_city_code": "110100",
         }
         response = await client.put(
             "/api/v1/users/me/profile",
@@ -242,7 +244,7 @@ class TestUpdateProfile:
         await client.put(
             "/api/v1/users/me/profile",
             headers=_auth(account["access_token"]),
-            json={"travel_types": ["历史人文"], "departure_city": "北京"},
+            json={"travel_types": ["历史人文"], "departure_city_code": "110100"},
         )
 
         # 只传 travel_types
@@ -258,7 +260,7 @@ class TestUpdateProfile:
             )
         ).json()["data"]
         assert data["travel_types"] == ["自然风光"]
-        assert data["departure_city"] is None, "整体替换语义下未传字段应被清空"
+        assert data["departure_city_code"] is None, "整体替换语义下未传字段应被清空"
 
 
 # ============================================================
@@ -385,15 +387,34 @@ class TestEnumValidation:
 
 
 class TestOther:
-    async def test_departure_city_max_50(
+    async def test_departure_city_code_format(
         self, client: httpx.AsyncClient, account: dict
     ) -> None:
+        """出发城市存 6 位行政区划编码，不是自由文本。"""
+        headers = _auth(account["access_token"])
+
+        # 非 6 位数字 → 400
         response = await client.put(
             "/api/v1/users/me/profile",
-            headers=_auth(account["access_token"]),
-            json={"departure_city": "x" * 51},
+            headers=headers,
+            json={"departure_city_code": "北京"},
         )
         assert response.status_code == 400
+
+    async def test_departure_city_code_accepted(
+        self, client: httpx.AsyncClient, account: dict
+    ) -> None:
+        headers = _auth(account["access_token"])
+
+        response = await client.put(
+            "/api/v1/users/me/profile",
+            headers=headers,
+            json={"departure_city_code": "110100"},
+        )
+        assert response.status_code == 204
+
+        detail = await client.get("/api/v1/users/me/profile", headers=headers)
+        assert detail.json()["data"]["departure_city_code"] == "110100"
 
     async def test_update_does_not_invalidate_tokens(
         self, client: httpx.AsyncClient, account: dict
@@ -420,7 +441,7 @@ class TestOther:
         await client.put(
             "/api/v1/users/me/profile",
             headers=_auth(account["access_token"]),
-            json={"travel_types": ["历史人文"], "departure_city": "北京"},
+            json={"travel_types": ["历史人文"], "departure_city_code": "110100"},
         )
 
         await client.put(
@@ -435,7 +456,7 @@ class TestOther:
             )
         ).json()["data"]
         assert data["travel_types"] == []
-        assert data["departure_city"] is None
+        assert data["departure_city_code"] is None
 
 
 class TestMissingProfileRecord:

@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import time
+import uuid
 from typing import Any
 
 import pytest
@@ -425,3 +426,76 @@ class TestRedisKeys:
             v._interval_key("x"),
         ):
             assert key.startswith(f"{settings.redis_key_prefix}:")
+
+
+# ============================================================
+# 开发环境日志输出验证码
+# ============================================================
+
+
+class TestDebugCodeLogging:
+    """开发环境把验证码打到日志，省去查邮件/Redis。
+
+    生产环境绝不能打印——那等于把登录凭据写进日志。
+    """
+
+    async def test_logs_code_in_development(
+        self, fake_redis, caplog
+    ) -> None:
+        import logging
+
+        from app.modules.account import verification
+
+        if verification._is_production():
+            pytest.skip("当前为生产环境配置，本用例只验证开发环境")
+
+        target = f"log_{uuid.uuid4().hex[:8]}@example.com"
+
+        with caplog.at_level(logging.WARNING):
+            await verification.send_verify_code(
+                verification.VerifyScene.REGISTER, target
+            )
+
+        # 日志里应该能直接看到验证码
+        stored = await fake_redis.get(
+            verification._code_key(verification.VerifyScene.REGISTER, target)
+        )
+        assert stored is not None
+        assert any(stored in record.message for record in caplog.records), (
+            "开发环境日志中应包含验证码"
+        )
+
+    async def test_log_marked_as_development(
+        self, fake_redis, caplog
+    ) -> None:
+        """日志文案带「开发环境」标记，避免被误认为生产泄露。"""
+        import logging
+
+        from app.modules.account import verification
+
+        if verification._is_production():
+            pytest.skip("当前为生产环境配置")
+
+        target = f"log_{uuid.uuid4().hex[:8]}@example.com"
+
+        with caplog.at_level(logging.WARNING):
+            await verification.send_verify_code(
+                verification.VerifyScene.LOGIN, target
+            )
+
+        assert any("开发环境" in record.message for record in caplog.records)
+
+    def test_not_production_check(self) -> None:
+        """``_is_production`` 只看 app_env，不依赖其他配置。"""
+        from app.core.config import settings
+        from app.modules.account import verification
+
+        original = settings.app_env
+        try:
+            settings.app_env = "production"
+            assert verification._is_production() is True
+
+            settings.app_env = "development"
+            assert verification._is_production() is False
+        finally:
+            settings.app_env = original

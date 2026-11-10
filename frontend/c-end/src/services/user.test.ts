@@ -48,7 +48,7 @@ const EMPTY_PROFILE = {
   budget_level: null,
   companion_type: null,
   preferred_seasons: [],
-  departure_city: null,
+  departure_city_code: null,
 };
 
 describe('user service unwrap', () => {

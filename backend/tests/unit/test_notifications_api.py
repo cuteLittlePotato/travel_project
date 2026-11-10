@@ -120,7 +120,7 @@ async def account(db_ready: None, fake_redis: _FakeRedis) -> Any:
 
     async with SessionLocal() as session:
         result = await service.register(
-            session, target=phone, verify_code_str="123456", password="Passw0rd"
+            session, target=phone, verify_code_str="123456"
         )
 
     user_id = result.user_id
@@ -308,7 +308,7 @@ class TestUnreadCount:
         )
         async with SessionLocal() as session:
             result = await service.register(
-                session, target=phone, verify_code_str="123456", password="Passw0rd"
+                session, target=phone, verify_code_str="123456"
             )
 
         try:
@@ -411,7 +411,7 @@ class TestMarkRead:
         )
         async with SessionLocal() as session:
             other = await service.register(
-                session, target=other_phone, verify_code_str="123456", password="Passw0rd"
+                session, target=other_phone, verify_code_str="123456"
             )
 
         try:
@@ -488,7 +488,7 @@ class TestReadAll:
         )
         async with SessionLocal() as session:
             other = await service.register(
-                session, target=other_phone, verify_code_str="123456", password="Passw0rd"
+                session, target=other_phone, verify_code_str="123456"
             )
             session.add(
                 Notification(

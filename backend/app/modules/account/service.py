@@ -137,7 +137,6 @@ async def register(
     *,
     target: str,
     verify_code_str: str,
-    password: str,
     nickname: str | None = None,
 ) -> AuthResult:
     """用户注册（API §3.2）。
@@ -180,7 +179,9 @@ async def register(
             user_id=user.id,
             provider=provider.value,
             provider_uid=target,
-            credential=hash_password(password),
+            # 注册不设密码（需求 2.1.1）：credential 留空，
+            # 用户之后可在个人中心设置（change_password 支持首次设置）
+            credential=None,
             is_primary=True,
         )
     )
@@ -429,6 +430,38 @@ class CodeLoginResult:
     is_new_user: bool
 
 
+async def _release_binding_identifier(
+    session: AsyncSession, *, user_id: uuid.UUID
+) -> None:
+    """把账号的登录标识改写为匿名值，释放原邮箱/手机号。
+
+    注销与「注销后重新注册」共用这段逻辑——两处的语义完全一致，
+    分开写迟早会漂移。
+
+    改写后的格式：``deleted_{时间戳}_{provider}_{随机8位}``。
+    保留「曾经绑定过某个标识」的记录形态（审计与统计需要计数），
+    同时释放原标识供新账号使用。
+    """
+    from datetime import UTC, datetime
+
+    from sqlalchemy import text
+
+    released_at = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
+    await session.execute(
+        text(
+            """
+            UPDATE oauth_binding
+            SET provider_uid = 'deleted_' || :ts || '_' || provider || '_'
+                               || substr(md5(random()::text), 1, 8),
+                credential = NULL
+            WHERE user_id = :uid
+            """
+        ),
+        {"ts": released_at, "uid": user_id},
+    )
+    await session.commit()
+
+
 async def login_or_register_by_code(
     session: AsyncSession, *, target: str, verify_code_str: str
 ) -> CodeLoginResult:
@@ -461,12 +494,28 @@ async def login_or_register_by_code(
     binding = await repo.bindings.get_by_provider(provider, target)
     is_new_user = False
 
+    user = None
     if binding is not None:
         user = await repo.users.get_by_id(binding.user_id)
         if user is None:
             # 绑定存在但用户不存在：数据不一致，按不存在处理
             raise AccountNotFoundError()
-    else:
+
+        # **已注销账号：释放标识并重新注册**（2026-11-09 规则）。
+        # 按钮写的是「登录 / 注册」，用户点它就该得到其中一个结果。
+        # 销毁的账号既登不进去、又被唯一约束挡着注册不了，是死路。
+        #
+        # 释放旧标识 → 走自动注册 → 得到全新账号。旧账号的匿名化
+        # 记录保持不动，两者互相独立。
+        if user.status == UserStatus.DELETED:
+            logger.info(
+                "验证码登录遇到已注销账号，重新注册 target=%s", target
+            )
+            await _release_binding_identifier(session, user_id=user.id)
+            binding = None
+            user = None
+
+    if user is None:
         # ---------- 3. 自动注册 ----------
         user, binding = await _auto_register(
             repo, provider, target, MAX_RETRY, generate_auto_nickname
@@ -476,8 +525,6 @@ async def login_or_register_by_code(
     # ---------- 4. 状态检查 ----------
     if user.status == UserStatus.BANNED:
         raise AccountBannedError()
-    if user.status == UserStatus.DELETED:
-        raise AccountDeletedError()
 
     # ---------- 5. 提交并签发 ----------
     from datetime import UTC, datetime
@@ -1004,8 +1051,17 @@ async def get_profile(session: AsyncSession, *, user_id: uuid.UUID) -> dict:
             "budget_level": None,
             "companion_type": None,
             "preferred_seasons": [],
-            "departure_city": None,
+            "departure_city_code": None,
+            "departure_city_info": None,
         }
+
+    # 编码 → 名称。**与 user.region_code 同一套处理**：
+    # 前端不该自己维护「编码→名称」的映射表。
+    departure_city = (
+        await repo.resolve_region(profile.departure_city_code)
+        if profile.departure_city_code
+        else None
+    )
 
     return {
         "travel_types": profile.travel_types or [],
@@ -1013,7 +1069,10 @@ async def get_profile(session: AsyncSession, *, user_id: uuid.UUID) -> dict:
         "budget_level": profile.budget_level,
         "companion_type": profile.companion_type,
         "preferred_seasons": profile.preferred_seasons or [],
-        "departure_city": profile.departure_city,
+        "departure_city_code": profile.departure_city_code,
+        #: 城市信息（code + name），编码在地区表中不存在时为 null。
+        #: 命名带 ``_info`` 后缀，避免与 ``departure_city_code`` 混淆。
+        "departure_city_info": departure_city,
     }
 
 
@@ -1026,7 +1085,7 @@ async def update_profile(
     budget_level: str | None = None,
     companion_type: str | None = None,
     preferred_seasons: list[str] | None = None,
-    departure_city: str | None = None,
+    departure_city_code: str | None = None,
     fields_set: set[str] | None = None,
 ) -> dict:
     """更新旅游偏好（API §3.12）。
@@ -1051,7 +1110,7 @@ async def update_profile(
         "budget_level": budget_level,
         "companion_type": companion_type,
         "preferred_seasons": preferred_seasons,
-        "departure_city": departure_city,
+        "departure_city_code": departure_city_code,
     }
 
     for key, value in source.items():
@@ -1414,8 +1473,21 @@ async def deactivate_account(
     user.nickname = "已注销用户"
     user.avatar_url = None
 
+    # ---------- 释放登录标识 ----------
+    # ``oauth_binding`` 有 ``uk_oauth_provider_uid (provider, provider_uid)``
+    # 唯一约束。不改写的话，这个邮箱/手机号会被永久占用——用户注销后
+    # 再想用同一个邮箱注册会被「已注册」挡住，而他自己也不知道为什么。
+    #
+    # 改写为带时间戳的匿名值：保留「曾经绑定过某个标识」的记录形态
+    # （审计与统计需要计数），同时释放原标识供新账号使用。
+    #
+    # 旧账号的匿名化足迹不会关联到新账号——它们本来就是两个账号。
+    # 释放登录标识，允许用户之后用同一邮箱/手机号重新注册。
+    # 与「验证码登录遇到已注销账号」共用同一函数，避免两处逻辑漂移。
+    await _release_binding_identifier(session, user_id=user_id)
+
     # ---------- 使所有 Token 失效 ----------
     await repo.users.increment_token_version(user_id)
 
     await session.commit()
-    logger.info("账号已注销 user_id=%s", user_id)
+    logger.info("账号已注销 user_id=%s（登录标识已释放）", user_id)

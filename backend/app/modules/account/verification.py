@@ -216,7 +216,19 @@ async def send_verify_code(scene: VerifyScene, target: str) -> SendResult:
             ErrorCode.INTERNAL_ERROR, "验证码发送失败，请稍后重试"
         ) from exc
 
-    # ---------- 5. 返回 ----------
+    # ---------- 5. 开发环境打印验证码 ----------
+    if not _is_production():
+        # 开发/测试环境把验证码打到日志，省去查邮件、连 Redis 或调用接口。
+        # 生产环境不打印——那等于把登录凭据写进日志。
+        logger.warning(
+            "【开发环境】验证码 scene=%s target=%s code=%s（%d 秒内有效）",
+            scene.value,
+            target,
+            code,
+            VERIFY_CODE_TTL_SECONDS,
+        )
+
+    # ---------- 6. 返回 ----------
     debug_code = None if _is_production() else result.debug_code
     return SendResult(expires_in=VERIFY_CODE_TTL_SECONDS, debug_code=debug_code)
 

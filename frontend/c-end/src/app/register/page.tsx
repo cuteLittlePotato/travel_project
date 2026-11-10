@@ -8,11 +8,12 @@
  *   - 可选填昵称
  *   - 注册成功即登录（后端返回双 Token）
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { App, Button, Card, Form, Input, Typography } from 'antd';
-import { LockOutlined, MailOutlined, SmileOutlined } from '@ant-design/icons';
+import { Alert, App, Button, Card, Form, Input, Typography } from 'antd';
+import type { InputRef } from 'antd';
+import { MailOutlined, SmileOutlined } from '@ant-design/icons';
 
 import { VerificationCodeButton } from '@/components/auth/VerificationCodeButton';
 import { AuthApiError, register, sendVerificationCode } from '@/services/auth';
@@ -20,7 +21,6 @@ import { useAuthStore } from '@/stores/auth';
 import {
   NICKNAME_MAX_LENGTH,
   getNicknameError,
-  getPasswordError,
   getTargetError,
   getVerifyCodeError,
 } from '@/lib/auth/validators';
@@ -28,8 +28,7 @@ import {
 interface RegisterForm {
   target: string;
   verify_code: string;
-  password: string;
-  confirm_password: string;
+
   nickname?: string;
 }
 
@@ -53,8 +52,22 @@ export default function RegisterPage() {
   const [form] = Form.useForm<RegisterForm>();
   const [loading, setLoading] = useState(false);
 
+  //: 账号输入框引用，用于兜底读取浏览器自动填充的值
+  const targetRef = useRef<InputRef>(null);
+
   const handleSendCode = async () => {
-    const target = form.getFieldValue('target') as string | undefined;
+    let target = form.getFieldValue('target') as string | undefined;
+
+    // **浏览器自动填充兜底**：autofill 只改 DOM 不触发 onChange，
+    // antd Form 的 store 里是空的。不兜底会表现为「框里有值却提示请填写」。
+    if (!target) {
+      const domValue = targetRef.current?.input?.value?.trim();
+      if (domValue) {
+        target = domValue;
+        form.setFieldValue('target', domValue);
+      }
+    }
+
     const targetError = getTargetError(target ?? '');
     if (targetError) {
       message.warning(targetError);
@@ -70,7 +83,6 @@ export default function RegisterPage() {
       const result = await register({
         target: values.target.trim(),
         verify_code: values.verify_code,
-        password: values.password,
         nickname: values.nickname?.trim() || undefined,
       });
       setSession(result.access_token, {
@@ -111,6 +123,7 @@ export default function RegisterPage() {
             ]}
           >
             <Input
+              ref={targetRef}
               prefix={<MailOutlined />}
               placeholder="请输入手机号或邮箱"
               size="large"
@@ -138,50 +151,15 @@ export default function RegisterPage() {
             </div>
           </Form.Item>
 
-          <Form.Item
-            name="password"
-            label="密码"
-            extra="8-32 位，需同时包含字母与数字"
-            rules={[
-              {
-                validator: (_, value: string) => {
-                  const error = getPasswordError(value ?? '');
-                  return error ? Promise.reject(new Error(error)) : Promise.resolve();
-                },
-              },
-            ]}
-          >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="请设置密码"
-              size="large"
-              autoComplete="new-password"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="confirm_password"
-            label="确认密码"
-            dependencies={['password']}
-            rules={[
-              { required: true, message: '请再次输入密码' },
-              ({ getFieldValue }) => ({
-                validator: (_, value: string) => {
-                  if (value && value !== getFieldValue('password')) {
-                    return Promise.reject(new Error('两次输入的密码不一致'));
-                  }
-                  return Promise.resolve();
-                },
-              }),
-            ]}
-          >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="请再次输入密码"
-              size="large"
-              autoComplete="new-password"
-            />
-          </Form.Item>
+          {/* 注册不设密码（需求 2.1.1）：账号创建后可用验证码登录，
+              需要密码时可在「个人中心 → 修改密码」中设置。 */}
+          <Alert
+            type="info"
+            showIcon
+            message="注册后可用验证码登录"
+            description="如需密码登录，可在注册完成后到「个人中心 → 修改密码」设置。"
+            style={{ marginBottom: 24 }}
+          />
 
           <Form.Item
             name="nickname"

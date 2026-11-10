@@ -136,13 +136,27 @@ async def user_factory(db_ready: None, fake_redis: _FakeRedis) -> Any:
         from app.db.session import SessionLocal
 
         async with SessionLocal() as session:
+            # 注册不设密码（需求 2.1.1），需要密码的用例在下面单独设置
             result = await service.register(
                 session,
                 target=phone,
                 verify_code_str="123456",
-                password=password,
             )
         created.append(result.user_id)
+
+        if with_password:
+            # 模拟用户注册后在个人中心设置了密码
+            from app.core.security import hash_password
+
+            async with SessionLocal() as session:
+                await session.execute(
+                    text(
+                        "UPDATE oauth_binding SET credential = :h "
+                        "WHERE user_id = :uid"
+                    ),
+                    {"h": hash_password(password), "uid": result.user_id},
+                )
+                await session.commit()
 
         if status != UserStatus.ACTIVE.value or not with_password:
             async with SessionLocal() as session:

@@ -17,6 +17,7 @@ from app.api.v1.b_end import auth as b_end_auth
 from app.api.v1.b_end import catalog as b_end_catalog
 from app.api.v1.b_end import models as b_end_models
 from app.api.v1.b_end import system as b_end_system
+from app.api.v1.c_end import attractions as c_end_attractions
 from app.api.v1.c_end import auth as c_end_auth
 from app.api.v1.c_end import notifications as c_end_notifications
 from app.api.v1.c_end import regions as c_end_regions
@@ -45,6 +46,8 @@ c_end_router.include_router(
 )
 # 地区字典：公开数据，筛选与个人资料共用
 c_end_router.include_router(c_end_regions.router, tags=["地区"])
+# M02 景点内容：列表 / 详情 / 分类 / 搜索建议
+c_end_router.include_router(c_end_attractions.router, tags=["景点"])
 
 # ---------- B 端业务 ----------
 # M11 基础数据：省市、分类、景点、餐厅、酒店、活动

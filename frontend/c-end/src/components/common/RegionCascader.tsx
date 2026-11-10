@@ -75,10 +75,24 @@ function useRegionTree() {
   return { options, isLoading: query.isLoading };
 }
 
+/**
+ * 回传什么值。
+ *
+ * 项目里有两个「地区」字段，存的格式不同：
+ *   - ``user.region_code``：存行政区划编码（VARCHAR(20)）
+ *   - ``travel_profile.departure_city``：存城市名称（VARCHAR(50)）
+ *
+ * 与其让两个字段各自实现一套选择器，不如让本组件支持两种回传格式。
+ * 新字段建议统一用编码——名称会因运营改名而失效。
+ */
+export type RegionValueField = 'code' | 'name';
+
 export interface RegionCascaderProps {
-  /** 行政区划编码，如 110100 */
+  /** 已选值。``valueField='code'`` 时为编码，``'name'`` 时为城市名 */
   value?: string | null;
-  onChange?: (code: string | null) => void;
+  onChange?: (value: string | null) => void;
+  /** 回传编码还是名称，默认 ``code`` */
+  valueField?: RegionValueField;
   placeholder?: string;
   disabled?: boolean;
 }
@@ -90,11 +104,32 @@ export interface RegionCascaderProps {
  * 因此从地区树里反查：找到 code 匹配的节点后，
  * 再找它的父节点（城市 → 省）。
  */
-function resolvePath(options: CascaderOption[], code: string): string[] | null {
+function resolvePath(
+  options: CascaderOption[],
+  target: string,
+  valueField: RegionValueField,
+): string[] | null {
+  // ``code`` 模式按 value 匹配；``name`` 模式按 label 匹配。
+  // 名称模式下城市优先于省——「北京市」既是省名也是市名，
+  // 用户选的几乎总是市。
+  const matches = (option: CascaderOption) =>
+    valueField === 'code' ? option.value === target : option.label === target;
+
   for (const province of options) {
-    if (province.value === code) return [province.value];
     for (const city of province.children ?? []) {
-      if (city.value === code) return [province.value, city.value];
+      if (matches(city)) return [province.value, city.value];
+    }
+    if (matches(province)) return [province.value];
+  }
+  return null;
+}
+
+/** 按编码找选项的 label（用于 ``valueField='name'`` 时回传名称） */
+function findLabel(options: CascaderOption[], value: string): string | null {
+  for (const province of options) {
+    if (province.value === value) return province.label;
+    for (const city of province.children ?? []) {
+      if (city.value === value) return city.label;
     }
   }
   return null;
@@ -103,6 +138,7 @@ function resolvePath(options: CascaderOption[], code: string): string[] | null {
 export function RegionCascader({
   value,
   onChange,
+  valueField = 'code',
   placeholder = '选择省 / 市',
   disabled,
 }: RegionCascaderProps) {
@@ -110,8 +146,8 @@ export function RegionCascader({
 
   const cascaderValue = useMemo(() => {
     if (!value) return undefined;
-    return resolvePath(options, value) ?? undefined;
-  }, [options, value]);
+    return resolvePath(options, value, valueField) ?? undefined;
+  }, [options, value, valueField]);
 
   return (
     <Cascader
@@ -119,7 +155,14 @@ export function RegionCascader({
       value={cascaderValue}
       onChange={(next) => {
         const selected = next?.[next.length - 1];
-        onChange?.(typeof selected === 'string' ? selected : null);
+        if (typeof selected !== 'string') {
+          onChange?.(null);
+          return;
+        }
+        // 按约定格式回传：编码或名称
+        onChange?.(
+          valueField === 'code' ? selected : findLabel(options, selected),
+        );
       }}
       placeholder={placeholder}
       loading={isLoading}

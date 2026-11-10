@@ -198,8 +198,11 @@ export default function ProfilePage() {
               }
             />
             <PreferenceRow label="偏好季节" values={travel.preferred_seasons} />
-            {travel.departure_city && (
-              <PreferenceRow label="默认出发城市" values={[travel.departure_city]} />
+            {travel.departure_city_info && (
+              <PreferenceRow
+                label="默认出发城市"
+                values={[travel.departure_city_info.name]}
+              />
             )}
             <Divider />
             <Button onClick={() => setActiveModal('preference')}>编辑偏好</Button>

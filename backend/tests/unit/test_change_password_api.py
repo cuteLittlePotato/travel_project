@@ -120,8 +120,18 @@ async def account(db_ready: None, fake_redis: _FakeRedis) -> Any:
 
     async with SessionLocal() as session:
         result = await service.register(
-            session, target=phone, verify_code_str="123456", password=OLD_PASSWORD
+            session, target=phone, verify_code_str="123456"
         )
+
+    # 注册不设密码，测试需要「已有密码」的账号，这里显式设置
+    from app.core.security import hash_password
+
+    async with SessionLocal() as session:
+        await session.execute(
+            text("UPDATE oauth_binding SET credential = :h WHERE user_id = :uid"),
+            {"h": hash_password(OLD_PASSWORD), "uid": result.user_id},
+        )
+        await session.commit()
 
     yield {
         "user_id": result.user_id,

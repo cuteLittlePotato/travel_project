@@ -91,7 +91,6 @@ async def register(
         session,
         target=payload.target,
         verify_code_str=payload.verify_code,
-        password=payload.password,
         nickname=payload.nickname,
     )
 

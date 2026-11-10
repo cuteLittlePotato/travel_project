@@ -15,6 +15,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.modules.catalog.schemas import OpeningHours
+
 
 class RegionBrief(BaseModel):
     """城市简要信息（列表项、筛选栏共用）。"""
@@ -131,7 +133,7 @@ class AttractionDetail(BaseModel):
     description: str | None = Field(description="富文本 HTML")
     image_urls: list[str]
     ticket_price: Decimal | None
-    opening_hours: dict[str, Any] | None
+    opening_hours: OpeningHours | None
     visit_duration_minutes: int | None
     best_seasons: list[str]
     website: str | None

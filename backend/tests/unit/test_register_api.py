@@ -4,7 +4,7 @@
     1. 注册成功返回 HTTP 201 + user_id + 双 Token
     2. 重复 target 返回 11003（HTTP 409）
     3. 注册后 user_profile、user_setting 各存在一条记录
-    4. password 长度 8-32 且含字母数字；响应不含 password_hash
+    4. 注册不设密码（需求 2.1.1）；响应不含 password_hash
 
 用真实数据库（注册要落库）+ Fake Redis（验证码）。
 """
@@ -182,8 +182,8 @@ class TestRegisterSuccess:
             json={
                 "target": target,
                 "verify_code": "123456",
-                "password": "Passw0rd",
-                "nickname": "测试用户",
+                
+                "nickname": "测试用户"
             },
         )
 
@@ -212,7 +212,7 @@ class TestRegisterSuccess:
 
         response = await client.post(
             "/api/v1/auth/register",
-            json={"target": target, "verify_code": "123456", "password": "Passw0rd"},
+            json={"target": target, "verify_code": "123456", },
         )
         assert response.status_code == 201
         user_id = response.json()["data"]["user_id"]
@@ -249,7 +249,7 @@ class TestRegisterSuccess:
 
         response = await client.post(
             "/api/v1/auth/register",
-            json={"target": target, "verify_code": "123456", "password": "Passw0rd"},
+            json={"target": target, "verify_code": "123456", },
         )
         assert response.status_code == 201
         cleanup.append(uuid.UUID(response.json()["data"]["user_id"]))
@@ -280,7 +280,7 @@ class TestDuplicateRegistration:
         await fake.set(verification._code_key(VerifyScene.REGISTER, target), "123456", ex=300)
         first = await client.post(
             "/api/v1/auth/register",
-            json={"target": target, "verify_code": "123456", "password": "Passw0rd"},
+            json={"target": target, "verify_code": "123456", },
         )
         assert first.status_code == 201
         cleanup.append(uuid.UUID(first.json()["data"]["user_id"]))
@@ -288,7 +288,7 @@ class TestDuplicateRegistration:
         await fake.set(verification._code_key(VerifyScene.REGISTER, target), "123456", ex=300)
         second = await client.post(
             "/api/v1/auth/register",
-            json={"target": target, "verify_code": "123456", "password": "Passw0rd"},
+            json={"target": target, "verify_code": "123456", },
         )
         assert second.status_code == 409
         assert second.json()["code"] == ErrorCode.DUPLICATE_TARGET == 11003
@@ -314,7 +314,7 @@ class TestVerifyCodeErrors:
 
         response = await client.post(
             "/api/v1/auth/register",
-            json={"target": target, "verify_code": "999999", "password": "Passw0rd"},
+            json={"target": target, "verify_code": "999999", },
         )
         assert response.status_code == 400
         assert response.json()["code"] == ErrorCode.INVALID_VERIFY_CODE == 11004
@@ -333,8 +333,7 @@ class TestVerifyCodeErrors:
             "/api/v1/auth/register",
             json={
                 "target": _unique_phone(),
-                "verify_code": "123456",
-                "password": "Passw0rd",
+                "verify_code": "123456"
             },
         )
         assert response.status_code == 400
@@ -354,7 +353,7 @@ class TestVerifyCodeErrors:
 
         response = await client.post(
             "/api/v1/auth/register",
-            json={"target": target, "verify_code": "123456", "password": "Passw0rd"},
+            json={"target": target, "verify_code": "123456", },
         )
         assert response.status_code == 400
         assert response.json()["code"] == 11004
@@ -367,32 +366,13 @@ class TestVerifyCodeErrors:
 
 class TestValidation:
     @pytest.mark.parametrize(
-        "password",
-        ["short1", "12345678", "abcdefgh", "a" * 33, "Passw0rd!" * 10],
-    )
-    async def test_invalid_password_rejected(self, client: httpx.AsyncClient, password: str) -> None:
-        """DoD：password 需 8-32 位且含字母数字。"""
-        response = await client.post(
-            "/api/v1/auth/register",
-            json={
-                "target": _unique_phone(),
-                "verify_code": "123456",
-                "password": password,
-            },
-        )
-        assert response.status_code == 400
-        body = response.json()
-        assert body["code"] == ErrorCode.VALIDATION_FAILED
-        assert any("password" in e["field"] for e in body["data"]["errors"])
-
-    @pytest.mark.parametrize(
         "target", ["", "12345", "abc", "a@b", "not-an-email", "123456789012"]
     )
     async def test_invalid_target_rejected(self, client: httpx.AsyncClient, target: str) -> None:
         """边界异常：target 格式非法 → 400。"""
         response = await client.post(
             "/api/v1/auth/register",
-            json={"target": target, "verify_code": "123456", "password": "Passw0rd"},
+            json={"target": target, "verify_code": "123456", },
         )
         assert response.status_code == 400
 
@@ -402,8 +382,7 @@ class TestValidation:
                 "/api/v1/auth/register",
                 json={
                     "target": _unique_phone(),
-                    "verify_code": code,
-                    "password": "Passw0rd",
+                    "verify_code": code
                 },
             )
             assert response.status_code == 400, f"{code} 应被拒绝"
@@ -414,8 +393,8 @@ class TestValidation:
             json={
                 "target": _unique_phone(),
                 "verify_code": "123456",
-                "password": "Passw0rd",
-                "nickname": "x" * 51,
+                
+                "nickname": "x" * 51
             },
         )
         assert response.status_code == 400
@@ -434,7 +413,7 @@ class TestValidation:
 
         response = await client.post(
             "/api/v1/auth/register",
-            json={"target": target, "verify_code": "123456", "password": "Passw0rd"},
+            json={"target": target, "verify_code": "123456", },
         )
         assert response.status_code == 201
         cleanup.append(uuid.UUID(response.json()["data"]["user_id"]))
@@ -463,7 +442,7 @@ class TestEmailRegistration:
 
         response = await client.post(
             "/api/v1/auth/register",
-            json={"target": target, "verify_code": "654321", "password": "Passw0rd"},
+            json={"target": target, "verify_code": "654321", },
         )
         assert response.status_code == 201
         cleanup.append(uuid.UUID(response.json()["data"]["user_id"]))
@@ -495,3 +474,118 @@ class TestDefaultNickname:
         assert "13800138000" not in username
         assert username.startswith("u_")
         assert len(username) <= 50
+
+
+# ============================================================
+# 注册不设密码（需求 2.1.1）
+# ============================================================
+
+
+class TestNoPasswordOnRegister:
+    """注册只要求验证码，不设密码。
+
+    需求 2.1.1 定义的注册方式是「手机号 + 验证码」「邮箱 + 验证码」，
+    没有密码。用户可在个人中心「修改密码」中设置，之后即可密码登录。
+    """
+
+    async def test_credential_is_null_after_register(
+        self, client: httpx.AsyncClient, cleanup: list
+    ) -> None:
+        from sqlalchemy import text
+
+        from app.db.session import SessionLocal
+
+        phone = _unique_phone()
+        await _seed_code(phone, VerifyScene.REGISTER)
+
+        response = await client.post(
+            "/api/v1/auth/register",
+            json={"target": phone, "verify_code": "123456"},
+        )
+        assert response.status_code == 201
+        user_id = response.json()["data"]["user_id"]
+        cleanup.append(uuid.UUID(user_id))
+
+        async with SessionLocal() as session:
+            result = await session.execute(
+                text("SELECT credential FROM oauth_binding WHERE user_id = :uid"),
+                {"uid": user_id},
+            )
+            assert result.scalar_one() is None, "注册不应设置密码"
+
+    async def test_password_login_fails_after_register(
+        self, client: httpx.AsyncClient, cleanup: list
+    ) -> None:
+        """注册后没有密码，密码登录应返回 11013（未设置密码）而非 11006。"""
+        phone = _unique_phone()
+        await _seed_code(phone, VerifyScene.REGISTER)
+
+        register_response = await client.post(
+            "/api/v1/auth/register",
+            json={"target": phone, "verify_code": "123456"},
+        )
+        cleanup.append(uuid.UUID(register_response.json()["data"]["user_id"]))
+
+        login = await client.post(
+            "/api/v1/auth/login",
+            json={"target": phone, "password": "AnyPass1"},
+        )
+
+        assert login.status_code == 401
+        assert login.json()["code"] == 11013
+
+    async def test_code_login_works_after_register(
+        self, client: httpx.AsyncClient, cleanup: list
+    ) -> None:
+        """注册后验证码登录始终可用。"""
+        phone = _unique_phone()
+        await _seed_code(phone, VerifyScene.REGISTER)
+
+        register_response = await client.post(
+            "/api/v1/auth/register",
+            json={"target": phone, "verify_code": "123456"},
+        )
+        cleanup.append(uuid.UUID(register_response.json()["data"]["user_id"]))
+
+        await _seed_code(phone, VerifyScene.LOGIN)
+        login = await client.post(
+            "/api/v1/auth/login-by-code",
+            json={"target": phone, "verify_code": "123456"},
+        )
+
+        assert login.status_code == 200
+        assert login.json()["data"]["access_token"]
+
+    async def test_password_field_ignored_if_sent(
+        self, client: httpx.AsyncClient, cleanup: list
+    ) -> None:
+        """即使客户端传了 password 字段，也不会被存下来。
+
+        Pydantic 默认忽略多余字段——这是对的：老版本客户端
+        继续传 password 不应报错，但密码也不会生效。
+        """
+        from sqlalchemy import text
+
+        from app.db.session import SessionLocal
+
+        phone = _unique_phone()
+        await _seed_code(phone, VerifyScene.REGISTER)
+
+        response = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "target": phone,
+                "verify_code": "123456",
+                "password": "Ignored123",
+            },
+        )
+        assert response.status_code == 201
+        user_id = response.json()["data"]["user_id"]
+        cleanup.append(uuid.UUID(user_id))
+
+        async with SessionLocal() as session:
+            result = await session.execute(
+                text("SELECT credential FROM oauth_binding WHERE user_id = :uid"),
+                {"uid": user_id},
+            )
+            assert result.scalar_one() is None
