@@ -8,8 +8,8 @@ import { create } from 'zustand';
 
 export interface AuthUser {
   user_id: string;
-  nickname: string;
-  avatar_url: string | null;
+  nickname?: string | null;
+  avatar_url?: string | null;
 }
 
 interface AuthState {

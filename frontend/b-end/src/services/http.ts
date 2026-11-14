@@ -77,7 +77,16 @@ http.interceptors.response.use(
 
 /** 解包统一响应，直接返回 data 部分 */
 export async function request<T>(config: AxiosRequestConfig): Promise<T> {
-  const { data } = await http.request<ApiResponse<T>>(config);
+  const response = await http.request<ApiResponse<T>>(config);
+
+  // 204 No Content 没有响应体（PUT/DELETE 的常规返回），
+  // 此时 data 是空字符串。直接读 data.code 会拿到 undefined，
+  // 被误判成「业务失败」而抛出无意义的错误。
+  if (response.status === 204 || !response.data) {
+    return null as T;
+  }
+
+  const { data } = response;
   if (data.code !== 0) {
     throw new Error(data.message);
   }

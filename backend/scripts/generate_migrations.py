@@ -45,6 +45,9 @@ class Index:
     table: str
     columns: str
     unique: bool = False
+    #: 部分索引的 WHERE 条件（如 ``is_read = FALSE``）。
+    #: M0-T13 原实现丢了这个字段，导致部分索引被建成全量索引。
+    where: str | None = None
 
 
 @dataclass
@@ -294,6 +297,11 @@ def parse_schema(sql: str) -> tuple[list[Table], list[Index], list[Partition], d
                 table=match.group(3),
                 columns=" ".join(match.group(4).split()),
                 unique=bool(match.group(1)),
+                where=(
+                    re.sub(r"^WHERE\s+", "", " ".join(match.group(5).split()), flags=re.I)
+                    if match.group(5)
+                    else None
+                ),
             )
         )
 
@@ -358,7 +366,12 @@ def render_table(table: Table) -> Iterator[str]:
                 f'name="ck_{table.name}_{col.name}{suffix}"),'
             )
     for name, expr in table.table_checks:
-        yield f'        sa.CheckConstraint({expr!r}, name="{name}"),'
+        # schema.sql 里的显式约束名不统一（有 chk_ 也有 ck_ 前缀），
+        # 统一为 ck_<table>_<语义>，与列级 CHECK 保持一致
+        normalized = re.sub(r"^(chk|ck)_", "", name)
+        if not normalized.startswith(f"{table.name}_"):
+            normalized = f"{table.name}_{normalized}"
+        yield f'        sa.CheckConstraint({expr!r}, name="ck_{normalized}"),'
     # 分区表必须声明 postgresql_partition_by，否则后续 PARTITION OF 会失败
     if table.partition_by:
         yield f'        postgresql_partition_by="RANGE ({table.partition_by})",'
@@ -376,11 +389,26 @@ def render_table(table: Table) -> Iterator[str]:
 def render_index(index: Index) -> str:
     """渲染索引。
 
+    部分索引（带 WHERE）用原生 SQL —— ``op.create_index`` 虽支持
+    ``postgresql_where``，但生成器输出的是文本代码，直接写 SQL 更直观可靠。
+    """
+    """渲染索引。
+
     带 ``DESC`` 的索引（如 ``created_at DESC``）在 SQLAlchemy 中要用
     ``sa.text()`` 或列的 ``.desc()``。这里用 ``postgresql_ops`` 不可行，
     简化处理：降序索引改用原生 SQL，保证与 schema.sql 完全一致。
     """
     columns = [c.strip() for c in index.columns.split(",")]
+
+    # 部分索引：保留 WHERE 子句
+    if index.where:
+        cols_sql = ", ".join(columns)
+        unique_sql = "UNIQUE " if index.unique else ""
+        sql = (
+            f'CREATE {unique_sql}INDEX {index.name} ON "{index.table}" '
+            f"({cols_sql}) WHERE {index.where}"
+        )
+        return f"    op.get_bind().exec_driver_sql({sql!r})"
 
     if any(" DESC" in c.upper() or " ASC" in c.upper() for c in columns):
         cols_sql = ", ".join(columns)

@@ -24,7 +24,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import DBSession
-from app.core.exceptions import ForbiddenError, UnauthorizedError
+from app.core.exceptions import BusinessError, ForbiddenError, UnauthorizedError
 from app.core.security import decode_token, verify_token_version
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -82,3 +82,40 @@ async def require_user(
 
 
 CurrentUserDep = Annotated[CurrentUser, Depends(require_user)]
+
+
+async def get_optional_user(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    session: DBSession,
+    resolve_version: Annotated[
+        TokenVersionResolver, Depends(get_token_version_resolver)
+    ],
+) -> CurrentUser | None:
+    """**可选认证**：带了有效 Token 就解析出用户，没带或无效返回 None。
+
+    用于「公开但需要识别用户」的接口（景点详情、发现页）：
+        - 未登录用户也能访问（埋点记 ``user_id=null``）
+        - 登录用户能记到自己名下，供个性化推荐使用
+
+    **与 ``require_user`` 的关键区别**：本依赖**从不抛异常**。
+    Token 过期、类型不对、版本失效，一律当作未登录——
+    不能让一个坏 Token 把公开页面变成 401。
+    """
+    if credentials is None or not credentials.credentials:
+        return None
+
+    try:
+        payload = decode_token(credentials.credentials, expected_type="access")
+        if payload.user_type != "user":
+            return None
+
+        current_version = await resolve_version(session, payload.subject_id)
+        verify_token_version(payload, current_version)
+    except BusinessError:
+        # 任何认证失败都降级为匿名访问
+        return None
+
+    return CurrentUser(user_id=payload.subject_id, token_version=payload.token_version)
+
+
+OptionalUserDep = Annotated[CurrentUser | None, Depends(get_optional_user)]

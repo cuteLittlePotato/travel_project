@@ -93,6 +93,9 @@ def _create_token(
         "user_type": user_type,
         "token_version": token_version,
         "token_type": token_type,
+        # jti 唯一标识本次签发，用于 Refresh Token 轮换时标记已使用
+        # （M01-T08：旧 Refresh Token 立即失效）
+        "jti": uuid.uuid4().hex,
         "iat": int(now.timestamp()),
         "exp": int((now + expires_delta).timestamp()),
     }

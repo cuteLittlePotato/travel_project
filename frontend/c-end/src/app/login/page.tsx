@@ -1,76 +1,150 @@
-/**
- * 登录页（CSR）。
- *
- * Token 策略（评审 §Q1）：Access Token 存内存、Refresh Token 存 httpOnly Cookie。
- * 后端认证接口在 M01 任务中实现，当前保留表单骨架。
- */
 'use client';
 
-import { useState } from 'react';
+/**
+ * 登录页（M01-T16）。
+ *
+ * 三种登录方式切换：
+ *   - 密码登录（API §3.3）
+ *   - 验证码登录，未注册自动注册（API §3.4）
+ *   - 第三方登录（API §3.5，当前未开放）
+ *
+ * Token 策略（评审 §Q1）：Access Token 存内存（Zustand），
+ * Refresh Token 由后端写入 httpOnly Cookie。**不碰 localStorage**。
+ */
+import { Suspense, useRef, useState } from 'react';
 import Link from 'next/link';
-import { App, Button, Card, Form, Input, Segmented, Typography } from 'antd';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  App,
+  Button,
+  Card,
+  Divider,
+  Form,
+  Input,
+  Segmented,
+  Typography,
+} from 'antd';
+import type { InputRef } from 'antd';
+import { LockOutlined, MailOutlined } from '@ant-design/icons';
 
-import { http, parseApiError } from '@/lib/api/http';
-import { useAuthStore, type AuthUser } from '@/stores/auth';
+import { OAuthButtons } from '@/components/auth/OAuthButtons';
+import { describeError } from './describe-error';
+import { VerificationCodeButton } from '@/components/auth/VerificationCodeButton';
+import {
+  AuthApiError,
+  login,
+  loginByCode,
+  sendVerificationCode,
+  type LoginResult,
+} from '@/services/auth';
+import { useAuthStore } from '@/stores/auth';
+import {
+  getPasswordError,
+  getTargetError,
+  getVerifyCodeError,
+} from '@/lib/auth/validators';
+import type { AuthUser } from '@/stores/auth';
 
 type LoginMode = '密码登录' | '验证码登录';
 
-interface LoginForm {
-  account: string;
-  password?: string;
-  code?: string;
+interface PasswordForm {
+  target: string;
+  password: string;
 }
 
-interface LoginResult {
-  access_token: string;
-  user: AuthUser;
+interface CodeForm {
+  target: string;
+  verify_code: string;
 }
 
-export default function LoginPage() {
+/** 登录成功后写入内存并跳转 */
+function persistSession(
+  result: LoginResult,
+  setSession: (token: string, user: AuthUser) => void,
+) {
+  setSession(result.access_token, {
+    user_id: result.user_id,
+    nickname: undefined,
+    avatar_url: null,
+  });
+}
+
+function LoginPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { message } = App.useApp();
-  const [mode, setMode] = useState<LoginMode>('密码登录');
-  const [loading, setLoading] = useState(false);
-  const [countdown, setCountdown] = useState(0);
   const setSession = useAuthStore((state) => state.setSession);
 
-  const startCountdown = () => {
-    setCountdown(60);
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
+  const [mode, setMode] = useState<LoginMode>('密码登录');
+  const [loading, setLoading] = useState(false);
+  const [passwordForm] = Form.useForm<PasswordForm>();
+  const [codeForm] = Form.useForm<CodeForm>();
+  //: 验证码登录的账号输入框引用，用于兜底读取浏览器自动填充的值
+  const codeTargetRef = useRef<InputRef>(null);
 
-  const handleSubmit = async (values: LoginForm) => {
+  const redirectTo = searchParams.get('redirect') ?? '/';
+
+  const handlePasswordLogin = async (values: PasswordForm) => {
     setLoading(true);
     try {
-      const url = mode === '密码登录' ? '/api/v1/auth/login' : '/api/v1/auth/login-by-code';
-      const { data } = await http.post<{ code: number; message: string; data: LoginResult }>(
-        url,
-        values,
-      );
-      setSession(data.data.access_token, data.data.user);
+      const result = await login(values);
+      persistSession(result, setSession);
       message.success('登录成功');
-      window.location.href = '/';
+      router.replace(redirectTo);
     } catch (error) {
-      message.error(parseApiError(error).message);
+      message.error(error instanceof AuthApiError ? describeError(error) : '登录失败');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleCodeLogin = async (values: CodeForm) => {
+    setLoading(true);
+    try {
+      const result = await loginByCode(values);
+      persistSession(result, setSession);
+      message.success(result.is_new_user ? '注册成功，欢迎加入' : '登录成功');
+      router.replace(redirectTo);
+    } catch (error) {
+      message.error(error instanceof AuthApiError ? describeError(error) : '登录失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendCode = async () => {
+    let target = codeForm.getFieldValue('target') as string | undefined;
+
+    // **浏览器自动填充兜底**：Chrome 等浏览器的 autofill 只设置 DOM 的
+    // value，**不触发 React 的 onChange**，因此 antd Form 的 store 里是空的。
+    // 用户看到输入框里有邮箱，点「获取验证码」却提示「请填写」。
+    // 这里从真实 DOM 读一次，并同步回表单，保证后续提交也能拿到。
+    if (!target) {
+      const domValue = codeTargetRef.current?.input?.value?.trim();
+      if (domValue) {
+        target = domValue;
+        codeForm.setFieldValue('target', domValue);
+      }
+    }
+
+    const targetError = getTargetError(target ?? '');
+    if (targetError) {
+      message.warning(targetError);
+      throw new Error(targetError);
+    }
+    await sendVerificationCode({ target: target!.trim(), scene: 'login' });
+    message.success('验证码已发送');
+  };
+
+
+
   return (
     <div
       className="page-container"
-      style={{ display: 'flex', justifyContent: 'center', paddingTop: 80 }}
+      style={{ display: 'flex', justifyContent: 'center', paddingTop: 64 }}
     >
-      <Card style={{ width: 400 }}>
-        <Typography.Title level={3} style={{ textAlign: 'center' }}>
+      <Card style={{ width: 420 }}>
+        <Typography.Title level={3} style={{ textAlign: 'center', marginBottom: 24 }}>
           登录云游坊
         </Typography.Title>
 
@@ -82,47 +156,139 @@ export default function LoginPage() {
           style={{ marginBottom: 24 }}
         />
 
-        <Form<LoginForm> layout="vertical" onFinish={handleSubmit} requiredMark={false}>
-          <Form.Item
-            name="account"
-            label={mode === '密码登录' ? '手机号 / 邮箱 / 用户名' : '手机号 / 邮箱'}
-            rules={[{ required: true, message: '请输入账号' }]}
+        {/*
+          **两个 Form 必须有不同的 key**：
+          它们是同一种组件类型，切换 tab 时 React 会复用同一个实例，
+          只更新 `form` prop。而 antd 的 Form 内部 store 绑定在首次
+          挂载时的实例上，复用会导致新 Form 的值仍写进旧 store——
+          表现为「输入框里有值，但 codeForm.getFieldValue() 返回空」。
+          加 key 强制卸载重建，各自绑定自己的 form 实例。
+        */}
+        {mode === '密码登录' ? (
+          <Form<PasswordForm>
+            key="password-form"
+            form={passwordForm}
+            layout="vertical"
+            requiredMark={false}
+            onFinish={handlePasswordLogin}
           >
-            <Input placeholder="请输入账号" size="large" autoComplete="username" />
-          </Form.Item>
+            <Form.Item
+              name="target"
+              label="手机号 / 邮箱 / 用户名"
+              rules={[{ required: true, message: '请输入账号' }]}
+            >
+              <Input
+                prefix={<MailOutlined />}
+                placeholder="请输入账号"
+                size="large"
+                autoComplete="username"
+              />
+            </Form.Item>
 
-          {mode === '密码登录' ? (
             <Form.Item
               name="password"
               label="密码"
-              rules={[{ required: true, message: '请输入密码' }]}
+              rules={[
+                { required: true, message: '请输入密码' },
+                {
+                  validator: (_, value: string) => {
+                    const error = getPasswordError(value ?? '');
+                    return error ? Promise.reject(new Error(error)) : Promise.resolve();
+                  },
+                },
+              ]}
             >
-              <Input.Password placeholder="请输入密码" size="large" autoComplete="current-password" />
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder="请输入密码"
+                size="large"
+                autoComplete="current-password"
+              />
             </Form.Item>
-          ) : (
+
+            <Button type="primary" htmlType="submit" block size="large" loading={loading}>
+              登录
+            </Button>
+          </Form>
+        ) : (
+          <Form<CodeForm>
+            key="code-form"
+            form={codeForm}
+            layout="vertical"
+            requiredMark={false}
+            onFinish={handleCodeLogin}
+          >
+            <Form.Item
+              name="target"
+              label="手机号 / 邮箱"
+              rules={[
+                { required: true, message: '请输入账号' },
+                {
+                  validator: (_, value: string) => {
+                    const error = getTargetError(value ?? '');
+                    return error ? Promise.reject(new Error(error)) : Promise.resolve();
+                  },
+                },
+              ]}
+            >
+              <Input
+                ref={codeTargetRef}
+                prefix={<MailOutlined />}
+                placeholder="请输入手机号或邮箱"
+                size="large"
+                autoComplete="username"
+              />
+            </Form.Item>
+
             <Form.Item label="验证码" required>
               <div style={{ display: 'flex', gap: 8 }}>
-                <Form.Item name="code" noStyle rules={[{ required: true, message: '请输入验证码' }]}>
-                  <Input placeholder="请输入验证码" size="large" />
+                <Form.Item
+                  name="verify_code"
+                  noStyle
+                  rules={[
+                    {
+                      validator: (_, value: string) => {
+                        const error = getVerifyCodeError(value ?? '');
+                        return error ? Promise.reject(new Error(error)) : Promise.resolve();
+                      },
+                    },
+                  ]}
+                >
+                  <Input placeholder="6 位验证码" size="large" maxLength={6} />
                 </Form.Item>
-                <Button size="large" disabled={countdown > 0} onClick={startCountdown}>
-                  {countdown > 0 ? `${countdown}s` : '获取验证码'}
-                </Button>
+                <VerificationCodeButton size="large" onSend={handleSendCode} />
               </div>
             </Form.Item>
-          )}
 
-          <Button type="primary" htmlType="submit" block size="large" loading={loading}>
-            登录
-          </Button>
-        </Form>
+            <Button type="primary" htmlType="submit" block size="large" loading={loading}>
+              登录 / 注册
+            </Button>
+          </Form>
+        )}
 
-        <div style={{ marginTop: 16, textAlign: 'center' }}>
+        <Divider plain style={{ color: '#8c8c8c', fontSize: 12 }}>
+          第三方登录
+        </Divider>
+        <OAuthButtons enabled={false} />
+
+        <div style={{ marginTop: 24, textAlign: 'center' }}>
           <Link href="/register" style={{ color: '#1677ff' }}>
-            还没有账号？立即注册
+            还没有账号？使用邮箱注册
           </Link>
         </div>
       </Card>
     </div>
+  );
+}
+
+/**
+ * Next.js 14 要求使用 useSearchParams 的组件被 Suspense 包裹，
+ * 否则构建期预渲染会报 "missing-suspense-with-csr-bailout"。
+ */
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

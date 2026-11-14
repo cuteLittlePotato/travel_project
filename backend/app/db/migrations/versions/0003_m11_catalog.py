@@ -172,7 +172,7 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.CheckConstraint("activity_type IN ('discount', 'festival', 'exhibition', 'other')", name="ck_activity_activity_type"),
-        sa.CheckConstraint('end_date >= start_date', name="chk_activity_date"),
+        sa.CheckConstraint('end_date >= start_date', name="ck_activity_date"),
     )
     op.get_bind().exec_driver_sql('COMMENT ON TABLE "activity" IS \'旅游活动（发现页推荐用）\'')
     op.get_bind().exec_driver_sql('COMMENT ON COLUMN "activity"."activity_type" IS \'类型：discount=特惠，festival=节庆，exhibition=展览，other=其他\'')
@@ -201,9 +201,9 @@ def upgrade() -> None:
     op.create_index("idx_hotel_geo", "hotel", ['latitude', 'longitude'])
     op.create_index("idx_transport_attraction_id", "transport", ['attraction_id'])
     op.execute('CREATE INDEX idx_activity_published ON "activity" (is_published, sort_weight DESC)')
-    op.create_index("idx_activity_dates", "activity", ['start_date', 'end_date'])
-    op.create_index("idx_activity_city", "activity", ['city_id'])
-    op.create_index("idx_activity_attraction", "activity", ['attraction_id'])
+    op.get_bind().exec_driver_sql('CREATE INDEX idx_activity_dates ON "activity" (start_date, end_date) WHERE is_published = TRUE')
+    op.get_bind().exec_driver_sql('CREATE INDEX idx_activity_city ON "activity" (city_id) WHERE city_id IS NOT NULL')
+    op.get_bind().exec_driver_sql('CREATE INDEX idx_activity_attraction ON "activity" (attraction_id) WHERE attraction_id IS NOT NULL')
     op.get_bind().exec_driver_sql('CREATE TRIGGER trg_region_updated_at BEFORE UPDATE ON "region" FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at()')
     op.get_bind().exec_driver_sql('CREATE TRIGGER trg_attraction_category_updated_at BEFORE UPDATE ON "attraction_category" FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at()')
     op.get_bind().exec_driver_sql('CREATE TRIGGER trg_attraction_updated_at BEFORE UPDATE ON "attraction" FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at()')

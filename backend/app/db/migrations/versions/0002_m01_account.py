@@ -121,7 +121,7 @@ def upgrade() -> None:
     op.create_index("uk_user_profile_user_id", "user_profile", ['user_id'], unique=True)
     op.create_index("uk_user_setting_user_id", "user_setting", ['user_id'], unique=True)
     op.execute('CREATE INDEX idx_notification_user ON "notification" (user_id, created_at DESC)')
-    op.create_index("idx_notification_unread", "notification", ['user_id', 'is_read'])
+    op.get_bind().exec_driver_sql('CREATE INDEX idx_notification_unread ON "notification" (user_id, is_read) WHERE is_read = FALSE')
     op.execute('CREATE INDEX idx_notification_type ON "notification" (notification_type, created_at DESC)')
     op.get_bind().exec_driver_sql('CREATE TRIGGER trg_user_updated_at BEFORE UPDATE ON "user" FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at()')
     op.get_bind().exec_driver_sql('CREATE TRIGGER trg_user_profile_updated_at BEFORE UPDATE ON "user_profile" FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at()')

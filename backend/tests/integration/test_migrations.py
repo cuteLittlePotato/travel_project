@@ -184,6 +184,7 @@ pytestmark_integration = pytest.mark.integration
 
 
 @pytest.mark.integration
+@pytest.mark.destructive
 class TestMigrationExecution:
     """需要真实数据库。先在空库上 upgrade head，再 downgrade base。
 

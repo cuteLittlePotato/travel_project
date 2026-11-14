@@ -82,6 +82,9 @@ class ErrorCode:
     OAUTH_ALREADY_BOUND = 11009
     REFRESH_TOKEN_REVOKED = 11010
     SAME_PASSWORD = 11011
+    NOTIFICATION_NOT_FOUND = 11012
+    #: 账号存在但从未设置密码（验证码注册 / 第三方登录创建）
+    PASSWORD_NOT_SET = 11013
 
     # ---------- 25000-25999 系统管理（M15） ----------
     PERMISSION_DENIED = 25001
@@ -103,6 +106,7 @@ ERROR_HTTP_STATUS: dict[int, int] = {
     ErrorCode.TOO_MANY_LOGIN_ATTEMPTS: 429,
     ErrorCode.OAUTH_ALREADY_BOUND: 409,
     ErrorCode.REFRESH_TOKEN_REVOKED: 401,
+    ErrorCode.PASSWORD_NOT_SET: 401,
     ErrorCode.SAME_PASSWORD: 400,
     ErrorCode.PERMISSION_DENIED: 403,
 }

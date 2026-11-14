@@ -60,4 +60,5 @@ pythonpath = ["backend"]
 filterwarnings = ["ignore::DeprecationWarning:starlette.testclient"]
 markers = [
     "integration: 需要真实外部服务（PostgreSQL 等），无配置时自动跳过",
+    "destructive: 会清空数据库（DROP SCHEMA），必须显式 --run-destructive 才执行",
 ]

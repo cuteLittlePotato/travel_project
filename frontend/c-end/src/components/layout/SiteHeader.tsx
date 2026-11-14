@@ -7,10 +7,14 @@
  * 用户相关入口，首屏始终可静态渲染。
  */
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Avatar, Button, Space } from 'antd';
-import { UserOutlined } from '@ant-design/icons';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { Avatar, Button, Dropdown, Modal, Space, Typography } from 'antd';
+import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import type { MenuProps } from 'antd';
 
+import { NotificationBell } from '@/components/notification/NotificationBell';
+import { useLogout } from '@/hooks/useLogout';
 import { useAuthStore } from '@/stores/auth';
 
 const NAV_ITEMS = [
@@ -23,7 +27,49 @@ const NAV_ITEMS = [
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, accessToken } = useAuthStore();
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const handleLogout = useLogout();
+
+  /** 头像下拉：个人中心 + 退出登录 */
+  const accountMenuItems: MenuProps['items'] = [
+    {
+      key: 'header',
+      // 下拉顶部显示当前账号，便于多账号场景确认「我是谁」
+      label: (
+        <div style={{ padding: '4px 0', cursor: 'default' }}>
+          <Typography.Text strong>
+            {user?.nickname ?? '已登录用户'}
+          </Typography.Text>
+        </div>
+      ),
+      disabled: true,
+    },
+    { type: 'divider' },
+    {
+      key: 'profile',
+      icon: <UserOutlined />,
+      label: '个人中心',
+    },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: '退出登录',
+      danger: true,
+    },
+  ];
+
+  const onAccountMenuClick: MenuProps['onClick'] = ({ key }) => {
+    if (key === 'profile') {
+      router.push('/profile');
+      return;
+    }
+
+    if (key === 'logout') {
+      setLogoutConfirmOpen(true);
+    }
+  };
 
   return (
     <header
@@ -64,9 +110,32 @@ export function SiteHeader() {
 
       <Space size={12}>
         {accessToken ? (
-          <Link href="/profile">
-            <Avatar src={user?.avatar_url ?? undefined} icon={<UserOutlined />} />
-          </Link>
+          <>
+            <NotificationBell />
+            <Dropdown
+              menu={{ items: accountMenuItems, onClick: onAccountMenuClick }}
+              trigger={['click']}
+              placement="bottomRight"
+            >
+              <button
+                type="button"
+                aria-label="账号菜单"
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  lineHeight: 0,
+                }}
+              >
+                <Avatar
+                  src={user?.avatar_url ?? undefined}
+                  icon={<UserOutlined />}
+                  style={{ cursor: 'pointer' }}
+                />
+              </button>
+            </Dropdown>
+          </>
         ) : (
           <>
             <Link href="/login">
@@ -78,6 +147,23 @@ export function SiteHeader() {
           </>
         )}
       </Space>
+
+      {/* 退出确认：用受控 Modal 而非 modal.confirm，
+          便于测试断言，也避免命令式 API 与 React 状态脱节 */}
+      <Modal
+        open={logoutConfirmOpen}
+        title="确定要退出登录吗？"
+        onCancel={() => setLogoutConfirmOpen(false)}
+        onOk={async () => {
+          setLogoutConfirmOpen(false);
+          await handleLogout();
+        }}
+        okText="退出"
+        cancelText="取消"
+        okButtonProps={{ danger: true }}
+      >
+        退出后需要重新登录，所有设备都会退出。
+      </Modal>
     </header>
   );
 }

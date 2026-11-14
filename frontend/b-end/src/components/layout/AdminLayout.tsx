@@ -5,29 +5,36 @@
  */
 import { Layout, Menu, Avatar, Breadcrumb, Dropdown, Space, Typography } from 'antd';
 import {
+  ApartmentOutlined,
+  AppstoreAddOutlined,
   AppstoreOutlined,
   DashboardOutlined,
   DatabaseOutlined,
   EnvironmentOutlined,
+  GlobalOutlined,
   HomeOutlined,
   LogoutOutlined,
   SettingOutlined,
   ShopOutlined,
+  TagOutlined,
   TeamOutlined,
   UserOutlined,
-  ApartmentOutlined,
 } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
+import { logout } from '@/services/auth';
 import { useAdminAuthStore } from '@/stores/auth';
 
 const { Header, Sider, Content } = Layout;
 
 const MENU_ITEMS = [
   { key: '/dashboard', icon: <DashboardOutlined />, label: '数据看板' },
+  { key: '/regions', icon: <GlobalOutlined />, label: '省市管理' },
+  { key: '/categories', icon: <AppstoreAddOutlined />, label: '分类管理' },
   { key: '/attractions', icon: <EnvironmentOutlined />, label: '景点管理' },
   { key: '/restaurants', icon: <ShopOutlined />, label: '餐厅管理' },
   { key: '/hotels', icon: <HomeOutlined />, label: '酒店管理' },
+  { key: '/activities', icon: <TagOutlined />, label: '活动管理' },
   { key: '/knowledge-base', icon: <DatabaseOutlined />, label: 'RAG 知识库' },
   { key: '/knowledge-graph', icon: <ApartmentOutlined />, label: '知识图谱' },
   { key: '/models', icon: <AppstoreOutlined />, label: '模型管理' },
@@ -49,9 +56,17 @@ export function AdminLayout() {
     ...(currentItem ? [{ title: currentItem.label }] : []),
   ];
 
-  const handleLogout = () => {
-    clear();
-    navigate('/login', { replace: true });
+  const handleLogout = async () => {
+    // 先调后端登出（全端登出，token_version 自增），
+    // 即使请求失败也要清本地状态——否则用户卡在「点了没反应」
+    try {
+      await logout();
+    } catch {
+      // 网络异常时仍然允许本地登出
+    } finally {
+      clear();
+      navigate('/login', { replace: true });
+    }
   };
 
   return (
@@ -97,7 +112,7 @@ export function AdminLayout() {
           >
             <Space style={{ cursor: 'pointer' }}>
               <Avatar icon={<UserOutlined />} size="small" />
-              <Typography.Text>{admin?.display_name ?? admin?.username ?? '管理员'}</Typography.Text>
+              <Typography.Text>{admin?.real_name ?? admin?.username ?? '管理员'}</Typography.Text>
             </Space>
           </Dropdown>
         </Header>
